@@ -90,25 +90,27 @@ class View():
 
 
     def Plus_Top_Left_Button_Clicked(self):
-        self.control.zoom_
+        self.control.Zoom_Top_Left_Plus()
+
 
     def Plus_Top_Right_Button_Clicked(self):
-        pass
+        self.control.Zoom_Top_Right_Plus()
 
     def Plus_Bottom_Left_Button_Clicked(self):
-        pass
+        self.control.Zoom_Bottom_Left_Plus()
 
 
 
 
     def Minus_Top_Left_Button_Clicked(self):
-        pass
+        self.control.Zoom_Top_Left_Minus()
+        #self.minus_Top_Left_Button['state']=DISABLED
 
     def Minus_Top_Right_Button_Clicked(self):
-        pass
+        self.control.Zoom_Top_Right_Minus()
 
     def Minus_Bottom_Left_Button_Clicked(self):
-        pass
+        self.control.Zoom_Bottom_Left_Minus()
 
 
 

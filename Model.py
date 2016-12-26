@@ -13,7 +13,9 @@ class Model:
         self.matrix_Projection_TopRightCanvas=np.matrix("1 0 0 0; 0 0 0 0; 0 0 1 0; 0 0 0 1")
         self.matrix_Projection_BotLeftCanvas=np.matrix("0 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1")
 
-        self.zoom_Canvas=[10,10,10]#1-min 10-max
+        #0-Top_Left, 1-Top_Right, 2-Bottom_Left
+        self.zoom_Canvas=[2,2,2]#1-min 10-max
+
 
         self.centre_World_Scene=(0,0,0)# not necessary
         #jak bardzo sa rozjebane elementy
