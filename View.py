@@ -92,15 +92,11 @@ class View():
     def Plus_Top_Left_Button_Clicked(self):
         self.control.Zoom_Top_Left_Plus()
 
-
     def Plus_Top_Right_Button_Clicked(self):
         self.control.Zoom_Top_Right_Plus()
 
     def Plus_Bottom_Left_Button_Clicked(self):
         self.control.Zoom_Bottom_Left_Plus()
-
-
-
 
     def Minus_Top_Left_Button_Clicked(self):
         self.control.Zoom_Top_Left_Minus()
@@ -114,14 +110,22 @@ class View():
 
 
 
+
+
+
+
+
     def Open_Model(self):
-        pass#powiniem przekazywac akcje do Controllera
+        self.control.Open_Data()
 
     def Save_Model(self):
-        pass#powinien przekazywac akcje do kontrolera
+        print self.canvas_Top_Left.winfo_width(),self.canvas_Top_Left.winfo_height()
+       # pass#powinien przekazywac akcje do kontrolera
 
     def Scale_Change(self,*args):
+       # print self.angle_Camera.get()
         self.control.angle_Change(self.angle_Camera.get())
+
 
 
 
