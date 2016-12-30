@@ -68,10 +68,10 @@ class View():
 
 
     def Init_Canvas_Buttons(self):
-        self.plus_Top_Left_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Top_Left_Button_Clicked)
-        self.plus_Top_Right_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Top_Right_Button_Clicked)
-        self.plus_Bottom_Left_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Bottom_Left_Button_Clicked)
-      #  self.plus_Bottom_Right_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Bottom_Right_Button_Clicked)
+        self.plus_Top_Left_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Top_Left_Button_Clicked, state=DISABLED)
+        self.plus_Top_Right_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Top_Right_Button_Clicked, state=DISABLED)
+        self.plus_Bottom_Left_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Bottom_Left_Button_Clicked, state=DISABLED)
+      #  self.plus_Bottom_Right_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Bottom_Right_Button_Clicked, state=DISABLED)
 
         self.minus_Top_Left_Button=ttk.Button(self.frame, text='-',padding=[10,10,10,10], command=self.Minus_Top_Left_Button_Clicked)
         self.minus_Top_Right_Button=ttk.Button(self.frame, text='-',padding=[10,10,10,10], command=self.Minus_Top_Right_Button_Clicked)

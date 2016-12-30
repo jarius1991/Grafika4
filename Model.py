@@ -27,7 +27,14 @@ class Model:
 
         self.triangle_Color=[]
         self.triangle_Surface=[]
+        self.have_Object= False
         #print np.dot(self.matrix_Projection_TopLeftCanvas, self.camera_Position)
+        self.clickable_Points={'Top_Left_Camera':None,
+                               'Top_Left_Viewpoint':None,
+                               'Top_Right_Camera':None,
+                               'Top_Right_Viewpoint':None,
+                               'Bottom_Left_Camera':None,
+                               'Bottom_Left_Viewpoint':None}
 
 
 

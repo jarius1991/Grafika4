@@ -14,15 +14,28 @@ class Controller:
 
     def angle_Change(self, value):
         self.m.angle_Camera=value#Borders checked at Tkinter Widget
+        if(self.m.have_Object):
+            self.set_Camera_Rectangle_Points()
+            self.clear_Canvas()
+            self.set_Canvas()
+
+
+        #jesli sa punkty dla kamery to nalezy je zmienic, jezeli wyjda poza obszar kamery to nalez zmienic rozmiar,
 
 
     def Zoom_Top_Left_Plus(self):
-        self.m.zoom_Canvas[0]+=1
-        if(self.m.zoom_Canvas[0]==10):#Disable if max
+        if(self.m.zoom_Canvas[0]==9):#Disable if max
             self.v.plus_Top_Left_Button['state']=DISABLED
+            self.m.zoom_Canvas[0]+=1
+        else:
+            self.m.zoom_Canvas[0]+=1
+
         if(self.m.zoom_Canvas[0]>1):#Minus active if not 1
             self.v.minus_Top_Left_Button['state']=NORMAL
         print (self.m.zoom_Canvas[0])
+        if(self.m.have_Object):
+            self.clear_Canvas()
+            self.set_Canvas()
 
     def Zoom_Top_Left_Minus(self):
         self.m.zoom_Canvas[0]-=1
@@ -31,17 +44,25 @@ class Controller:
         if(self.m.zoom_Canvas[0]<10):#Plus active if not 10
             self.v.plus_Top_Left_Button['state']=NORMAL
         print (self.m.zoom_Canvas[0])
-
+        if(self.m.have_Object):
+            self.clear_Canvas()
+            self.set_Canvas()
 
 
 
     def Zoom_Top_Right_Plus(self):
-        self.m.zoom_Canvas[1]+=1
-        if(self.m.zoom_Canvas[1]==10):#Disable if max
+        if(self.m.zoom_Canvas[1]==9):#Disable if max
             self.v.plus_Top_Right_Button['state']=DISABLED
+            self.m.zoom_Canvas[1]+=1
+        else:
+            self.m.zoom_Canvas[1]+=1
+
         if(self.m.zoom_Canvas[1]>1):#Minus active if not 1
             self.v.minus_Top_Right_Button['state']=NORMAL
         print (self.m.zoom_Canvas[1])
+        if(self.m.have_Object):
+            self.clear_Canvas()
+            self.set_Canvas()
 
     def Zoom_Top_Right_Minus(self):
         self.m.zoom_Canvas[1]-=1
@@ -50,16 +71,25 @@ class Controller:
         if(self.m.zoom_Canvas[1]<10):#Plus active if not 10
             self.v.plus_Top_Right_Button['state']=NORMAL
         print (self.m.zoom_Canvas[1])
+        if(self.m.have_Object):
+            self.clear_Canvas()
+            self.set_Canvas()
 
 
 
     def Zoom_Bottom_Left_Plus(self):
-        self.m.zoom_Canvas[2]+=1
-        if(self.m.zoom_Canvas[2]==10):#Disable if max
+
+        if(self.m.zoom_Canvas[2]==9):#Disable if max
             self.v.plus_Bottom_Left_Button['state']=DISABLED
+            self.m.zoom_Canvas[2]+=1
+        else:
+            self.m.zoom_Canvas[2]+=1
         if(self.m.zoom_Canvas[2]>1):#Minus active if not 1
             self.v.minus_Bottom_Left_Button['state']=NORMAL
         print (self.m.zoom_Canvas[2])
+        if(self.m.have_Object):
+            self.clear_Canvas()
+            self.set_Canvas()
 
     def Zoom_Bottom_Left_Minus(self):
         self.m.zoom_Canvas[2]-=1
@@ -68,60 +98,69 @@ class Controller:
         if(self.m.zoom_Canvas[2]<10):#Plus active if not 10
             self.v.plus_Bottom_Left_Button['state']=NORMAL
         print (self.m.zoom_Canvas[2])
+        if(self.m.have_Object):
+            self.clear_Canvas()
+            self.set_Canvas()
 
     def Open_Data(self):
-        self.clear_Canvas()
-        source=tkFileDialog.askdirectory()
 
-        #####open model
-        file=open(source+'/model.txt', 'r')
+        try:
 
-        #load vertices
-        num_Verticles=int(file.readline())
-        self.m.verticles= np.array([[int(i) for i in file.readline().strip('\n').split(',')] for i in range (0,num_Verticles)])
+            source=tkFileDialog.askdirectory()
+            #####open model
+            file=open(source+'/model.txt', 'r')
 
-        #load numer of verticles in each triangle
-        triangles_Number=int(file.readline())
-        self.m.triangle_Verticles= tuple(tuple(int(i) for i in file.readline().strip('\n').split(',')) for i in range (0,triangles_Number))
+            #load vertices
+            num_Verticles=int(file.readline())
+            self.m.verticles= np.array([[int(i) for i in file.readline().strip('\n').split(',')] for i in range (0,num_Verticles)])
 
-        #load triangle color and surface parameters
-        self.m.triangle_Color=[None]*triangles_Number
-        self.m.triangle_Surface=[None] * triangles_Number
-        for i in range(0,triangles_Number):
+            #load numer of verticles in each triangle
+            triangles_Number=int(file.readline())
+            self.m.triangle_Verticles= tuple(tuple(int(i) for i in file.readline().strip('\n').split(',')) for i in range (0,triangles_Number))
+
+            #load triangle color and surface parameters
+            self.m.triangle_Color=[None]*triangles_Number
+            self.m.triangle_Surface=[None] * triangles_Number
+            for i in range(0,triangles_Number):
+                temp=file.readline()
+                elements=[int(s) for s in temp.strip('\n').split(' ')]
+                self.m.triangle_Color[i], self.m.triangle_Surface[i]= tuple(elements[0:3]),tuple(elements[3:])
+            self.m.triangle_Color=tuple(self.m.triangle_Color)
+            self.m.triangle_Surface=tuple(self.m.triangle_Surface)
+
+            #load light parameters
             temp=file.readline()
-            elements=[int(s) for s in temp.strip('\n').split(' ')]
-            self.m.triangle_Color[i], self.m.triangle_Surface[i]= tuple(elements[0:3]),tuple(elements[3:])
-        self.m.triangle_Color=tuple(self.m.triangle_Color)
-        self.m.triangle_Surface=tuple(self.m.triangle_Surface)
+            elements= [int(s) for s in temp.strip('\n').split(' ')]
+            self.m.light_Position, self.m.light_Color=  tuple(elements[0:3]),tuple(elements[3:])
+            file.close()
+            #####
 
-        #load light parameters
-        temp=file.readline()
-        elements= [int(s) for s in temp.strip('\n').split(' ')]
-        self.m.light_Position, self.m.light_Color=  tuple(elements[0:3]),tuple(elements[3:])
-        file.close()
-        #####
+            #####open camera
+            file=open(source+'/kamera.txt','r')
+            self.m.camera_Position=np.array([int(i) for i in file.readline().strip('\n').split(' ')])
+            print  self.m.camera_Position
 
-        #####open camera
-        file=open(source+'/kamera.txt','r')
-        self.m.camera_Position=np.array([int(i) for i in file.readline().strip('\n').split(' ')])
-        print  self.m.camera_Position
+            self.m.viewport_Position=np.array([int(i) for i in file.readline().strip('\n').split(' ')])
+            print self.m.viewport_Position
 
-        self.m.viewport_Position=np.array([int(i) for i in file.readline().strip('\n').split(' ')])
-        print self.m.viewport_Position
+            self.m.angle_Camera=[int(i) for i in file.readline().strip('\n').split(' ')][0]
+            #print self.m.angle_Camera
+            file.close()
+            #####
+            self.v.angle_Camera.set(self.m.angle_Camera)
+            self.m.have_Object=True
 
-        self.m.angle_Camera=[int(i) for i in file.readline().strip('\n').split(' ')][0]
-        #print self.m.angle_Camera
-        file.close()
-        #####
+            self.clear_Canvas()
+
+            self.set_Camera_Rectangle_Points()#checked good
+            self.set_Centre_Scene1()#checked good
+            self.set_Canvas()
+
+        except :
+            print 'IOException'
 
 
 
-
-        #tutaj powinno byc raczej dodanie do wykonania sluchaczy
-
-        self.set_Camera_Rectangle_Points()#checked good
-        self.set_Centre_Scene1()#checked good
-        self.set_Canvas()
 
 
     def set_Camera_Rectangle_Points(self):
@@ -475,6 +514,10 @@ class Controller:
         camera=np.dot(matrix,self.m.Bottom_Left_Canvas_Camera)
         viewport=np.dot(matrix,self.m.Bottom_Left_Canvas_Viewpoint)
         points=np.dot(matrix,self.m.Bottom_Left_Canvas_Rectangle)
+
+        self.m.clickable_Points['Bottom_Left_Camera']=camera
+        self.m.clickable_Points['Bottom_Left_Viewpoint']=viewport
+
         for i in range(0,4):
             self.v.canvas_Bottom_Left.create_line(camera[0],camera[2],points[0][i],points[2][i])
         self.v.canvas_Bottom_Left.create_line(camera[0],camera[2], viewport[0], viewport[2],fill='red', width=3 )
@@ -485,6 +528,10 @@ class Controller:
         camera=np.dot(matrix,self.m.Top_Left_Canvas_Camera)
         viewport=np.dot(matrix,self.m.Top_Left_Canvas_Viewpoint)
         points=np.dot(matrix,self.m.Top_Left_Canvas_Rectangle)
+
+        self.m.clickable_Points['Top_Left_Camera']=camera
+        self.m.clickable_Points['Top_Left_Viewpoint']=viewport
+
         for i in range(0,4):
             self.v.canvas_Top_Left.create_line(camera[0],camera[1],points[0][i],points[1][i])
         self.v.canvas_Top_Left.create_line(camera[0],camera[1], viewport[0], viewport[1],fill='red', width=3 )
@@ -495,6 +542,9 @@ class Controller:
         camera=np.dot(matrix,self.m.Top_Right_Canvas_Camera)
         viewport=np.dot(matrix,self.m.Top_Right_Canvas_Viewpoint)
         points=np.dot(matrix,self.m.Top_Right_Canvas_Rectangle)
+
+        self.m.clickable_Points['Top_Right_Camera']=camera
+        self.m.clickable_Points['Top_Right_Viewpoint']=viewport
 
         for i in range(0,4):
             self.v.canvas_Top_Right.create_line(camera[2],camera[1],points[2][i],points[1][i])
