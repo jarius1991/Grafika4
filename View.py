@@ -66,6 +66,48 @@ class View():
             self.frame.grid_rowconfigure(i,weight=1)
             self.frame.grid_columnconfigure(i,weight=1)
 
+        self.canvas_Top_Left.bind("<Button-1>",self.click_Top_Left)
+        self.canvas_Top_Left.bind("<B1-Motion>",self.motion_Top_Left)
+        self.canvas_Top_Left.bind("<ButtonRelease-1>",self.release_Top_Left)
+
+        self.canvas_Top_Right.bind("<Button-1>",self.click_Top_Right)
+        self.canvas_Top_Right.bind("<B1-Motion>",self.motion_Top_Right)
+        self.canvas_Top_Right.bind("<ButtonRelease-1>",self.release_Top_Right)
+
+        self.canvas_Bottom_Left.bind("<Button-1>",self.click_Bottom_Left)
+        self.canvas_Bottom_Left.bind("<B1-Motion>",self.motion_Bottom_Left)
+        self.canvas_Bottom_Left.bind("<ButtonRelease-1>",self.release_Bottom_Left)
+
+
+    def click_Top_Left(self,event):
+        self.control.click_Top_Left(event.x,event.y)
+
+    def motion_Top_Left(self,event):
+        self.control.motion_Top_Left(event.x,event.y)
+
+    def release_Top_Left(self,event):
+        self.control.release_Top_Left()
+
+
+    def click_Bottom_Left(self,event):
+        self.control.click_Bottom_Left(event.x,event.y)
+
+    def motion_Bottom_Left(self,event):
+        self.control.motion_Bottom_Left(event.x,event.y)
+
+    def release_Bottom_Left(self,event):
+        self.control.release_Bottom_Left()
+
+
+    def click_Top_Right(self,event):
+        self.control.click_Top_Right(event.x,event.y)
+
+    def motion_Top_Right(self,event):
+        self.control.motion_Top_Right(event.x,event.y)
+
+    def release_Top_Right(self,event):
+        self.control.release_Top_Right()
+
 
     def Init_Canvas_Buttons(self):
         self.plus_Top_Left_Button=ttk.Button(self.frame, text='+',padding=[10,10,10,10], command=self.Plus_Top_Left_Button_Clicked, state=DISABLED)
@@ -110,7 +152,7 @@ class View():
 
 
 
-
+    #def
 
 
 
@@ -120,11 +162,15 @@ class View():
 
     def Save_Model(self):
         print self.canvas_Top_Left.winfo_width(),self.canvas_Top_Left.winfo_height()
+
        # pass#powinien przekazywac akcje do kontrolera
+        print self.canvas_Top_Left.cget('cursor')
 
     def Scale_Change(self,*args):
        # print self.angle_Camera.get()
         self.control.angle_Change(self.angle_Camera.get())
+
+
 
 
 

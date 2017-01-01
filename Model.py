@@ -35,7 +35,8 @@ class Model:
                                'Top_Right_Viewpoint':None,
                                'Bottom_Left_Camera':None,
                                'Bottom_Left_Viewpoint':None}
-
+        self.point_Clicked_Canvas=[0,0]
+        self.clicked_Point_Position={}
 
 
 

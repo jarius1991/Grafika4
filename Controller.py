@@ -175,10 +175,11 @@ class Controller:
         self.m.camera_Rectangle_Points=np.transpose(np.dot(self.reverse_Camera_Matrix(),np.transpose(points)))
 
 
+
     def reverse_Camera_Matrix(self):
         #used to set rectangle points in right place in space
-        temp_camera=self.m.camera_Position[:]
-        temp_viewport=self.m.viewport_Position[:]
+        temp_camera=self.m.camera_Position.copy()
+        temp_viewport=self.m.viewport_Position.copy()
         angle=0
         if(temp_camera[2]==0):
             if(temp_camera[1]>0):
@@ -188,16 +189,32 @@ class Controller:
             else:
                 angle=0
         else:
-            angle=-math.degrees(math.atan(temp_camera[1]/temp_camera[2]))
+            angle=-math.degrees(math.atan(float(temp_camera[1])/temp_camera[2]))#w code review doogarnac dzielenie
+    #rotation OX
         rotateOX=self.rotation_X(angle)
+        rotateOX_toCompute=self.rotation_X(-angle)
         top=math.sqrt(pow(temp_camera[1],2) + pow(temp_camera[2],2))
+        #print top
         if(temp_camera[0]==0):
-                angle=0
+            angle=0
         else:
-            angle=-math.degrees(  math.atan( temp_camera[0]/top  )  )
+            angle=-math.degrees(  math.atan( float(temp_camera[0])/top  )  )
+
+    #rotation OY
         rotateOY=self.rotation_Y(angle)
+        rotateOY_toCompute=self.rotation_Y(-angle)
         translate=self.translation(temp_viewport[0],temp_viewport[1],temp_viewport[2])
-        matrix=np.dot(rotateOX,rotateOY)
+
+        matrix_toCompute=np.dot(rotateOY_toCompute,rotateOX_toCompute)
+
+        Y=np.array([[0],[1],[0],[1]])
+        Y= np.dot(matrix_toCompute,Y)
+
+        angle=-math.degrees(math.atan(float(Y[0])/Y[1]))#w code review doogarnac dzielenie
+        rotateOZ=self.rotation_Z(angle)
+        matrix=np.dot(rotateOY,rotateOZ)
+        matrix=np.dot(rotateOX,matrix)
+
         return np.dot(translate,matrix)
 
 
@@ -443,7 +460,7 @@ class Controller:
         #print verticles
         #print 'points'
         ##chwilowe rozwiazanie by sprawdzic jak wyglada to wszystko po przeksztalceniach
-        print  len(self.m.triangle_Verticles)
+        #print  len(self.m.triangle_Verticles)
         for i in self.m.triangle_Verticles:
             for j in range(-1,2):
                 #i[j] indeks pierwszego wierzcholka i[j+1] indeks drugiego wierzcholka
@@ -459,7 +476,7 @@ class Controller:
         #print verticles
         #print 'points'
         ##chwilowe rozwiazanie by sprawdzic jak wyglada to wszystko po przeksztalceniach
-        print  len(self.m.triangle_Verticles)
+        #print  len(self.m.triangle_Verticles)
         for i in self.m.triangle_Verticles:
             for j in range(-1,2):
                 #i[j] indeks pierwszego wierzcholka i[j+1] indeks drugiego wierzcholka
@@ -510,11 +527,47 @@ class Controller:
      #   for i in range(-1,3):
      #       self.v.canvas_Top_Right.create_line(points[2][i],points[1][i],points[2][i+1],points[1][i+1])
 
+    def Draw_Top_Left_Camera_Triangle(self, matrix):
+        camera=np.dot(matrix,self.m.Top_Left_Canvas_Camera)
+        viewport=np.dot(matrix,self.m.Top_Left_Canvas_Viewpoint)
+        points=np.dot(matrix,self.m.Top_Left_Canvas_Rectangle)
+
+        self.m.clickable_Points['Top_Left_Camera']=camera
+        self.m.clickable_Points['Top_Left_Viewpoint']=viewport
+
+
+
+        for i in range(0,4):
+            self.v.canvas_Top_Left.create_line(camera[0],camera[1],points[0][i],points[1][i])
+        self.v.canvas_Top_Left.create_line(camera[0],camera[1], viewport[0], viewport[1],fill='red', width=3 )
+        for i in range(-1,3):
+            self.v.canvas_Top_Left.create_line(points[0][i],points[1][i],points[0][i+1],points[1][i+1])
+
+    def Draw_Top_Left_Camera_Triangle1(self, matrix):
+        camera=np.dot(matrix,self.m.Top_Left_Canvas_Camera)
+        viewport=np.dot(matrix,self.m.Top_Left_Canvas_Viewpoint)
+        points=np.dot(matrix,self.m.Top_Left_Canvas_Rectangle)
+        lines_before_cut=[]
+
+        self.m.clickable_Points['Top_Left_Camera']=camera
+        self.m.clickable_Points['Top_Left_Viewpoint']=viewport
+
+        self.v.canvas_Top_Left.create_line(camera[0],camera[1], viewport[0], viewport[1],fill='red', width=3 )
+
+        for i in range(0,4):
+            lines_before_cut.append((camera[0],camera[1],points[0][i],points[1][i]))
+        for i in range(-1,3):
+            lines_before_cut.append((points[0][i],points[1][i],points[0][i+1],points[1][i+1]))
+        lines_after_cut=self.cut_Lines( self.m.canvas_Resolution[0], self.m.canvas_Resolution[1], lines_before_cut)
+        for i in range(-1,len(lines_after_cut)):
+            self.v.canvas_Top_Left.create_line(lines_after_cut[i][0],lines_after_cut[i][1],lines_after_cut[i][2],lines_after_cut[i][3])
+
+
+
     def Draw_Bottom_Left_Camera_Triangle(self,matrix):
         camera=np.dot(matrix,self.m.Bottom_Left_Canvas_Camera)
         viewport=np.dot(matrix,self.m.Bottom_Left_Canvas_Viewpoint)
         points=np.dot(matrix,self.m.Bottom_Left_Canvas_Rectangle)
-
         self.m.clickable_Points['Bottom_Left_Camera']=camera
         self.m.clickable_Points['Bottom_Left_Viewpoint']=viewport
 
@@ -524,19 +577,7 @@ class Controller:
         for i in range(-1,3):
             self.v.canvas_Bottom_Left.create_line(points[0][i],points[2][i],points[0][i+1],points[2][i+1])
 
-    def Draw_Top_Left_Camera_Triangle(self, matrix):
-        camera=np.dot(matrix,self.m.Top_Left_Canvas_Camera)
-        viewport=np.dot(matrix,self.m.Top_Left_Canvas_Viewpoint)
-        points=np.dot(matrix,self.m.Top_Left_Canvas_Rectangle)
 
-        self.m.clickable_Points['Top_Left_Camera']=camera
-        self.m.clickable_Points['Top_Left_Viewpoint']=viewport
-
-        for i in range(0,4):
-            self.v.canvas_Top_Left.create_line(camera[0],camera[1],points[0][i],points[1][i])
-        self.v.canvas_Top_Left.create_line(camera[0],camera[1], viewport[0], viewport[1],fill='red', width=3 )
-        for i in range(-1,3):
-            self.v.canvas_Top_Left.create_line(points[0][i],points[1][i],points[0][i+1],points[1][i+1])
 
     def Draw_Top_Right_Camera_Triangle(self,matrix):
         camera=np.dot(matrix,self.m.Top_Right_Canvas_Camera)
@@ -551,6 +592,259 @@ class Controller:
         self.v.canvas_Top_Right.create_line(camera[2],camera[1], viewport[2], viewport[1],fill='red', width=3 )
         for i in range(-1,3):
             self.v.canvas_Top_Right.create_line(points[2][i],points[1][i],points[2][i+1],points[1][i+1])
+
+
+    #biblioteka obcinajaca przyjmujaca (x,y-max i min 0,0) i obcinajaca cos powyzej
+    def cut_Lines(self,x_max,y_max,lines):
+        #wyznacz wektor
+        #Cohen,Sutherland vector
+        first_Point_Vector=[]
+        second_point_Vector=[]
+        cutted_lines=[]
+        #for i in lines:
+            # i mam (xo,yo,x1,y1)
+            #(top,bot,left,right)
+            #punkt o
+         #   first_Point_Vector.append((y<i[1],i[1]<0,i[0]<0,i[0]>x))
+          #  second_point_Vector.append((y<i[3],i[3]<0,i[2]<0,i[2]>x))
+        #print 'co ja tutaj kurwa robie'
+        #print first_Point_Vector
+        #print'sec'
+        #print second_point_Vector
+        #print lines
+        for i in lines:
+            i=list(i)
+            B1=(y_max<i[1],i[1]<0,i[0]<0,i[0]>x_max)
+            B2=(y_max<i[3],i[3]<0,i[2]<0,i[2]>x_max)
+            while(True):
+                if(B1==(0,0,0,0) and B2==(0,0,0,0)):
+                    cutted_lines.append(tuple(i))
+                    break
+                elif((B1 and B2)!=(0,0,0,0) ):
+                    break
+                else:
+                    #Cutting
+                    #wybieramy punkt w srodku
+                    ktory=-1
+                    x=0
+                    y=0
+
+                    if(B1!=(0,0,0,0)):
+                        b=B1
+                        ktory=1
+                    else:
+                        b=B2
+                        ktory=2
+
+                    if b[0]:
+                        #ciecie gorna krawedzia
+                        x=i[0]+(i[2]-i[0])*(y_max-i[1])/(i[3]-i[1])
+                        y=y_max
+                    elif b[1]:
+                        #ciecie dolna krawdzia okna
+                        x=i[0]+(i[2]-i[0])*(0-i[1])/(i[3]-i[1])
+                        y=y_max
+                    elif b[2]:
+                        y=i[1]+(i[3]-i[1])*(0-i[0])/(i[2]-i[0])
+                        x=0
+                    else:
+                        y=i[1]+(i[3]-i[1])*(x_max-i[0])/(i[2]-i[0])
+                        x=x_max
+
+                    if(ktory==1):
+                        i[0],i[1]=x,y
+                        B1=(y_max<i[1],i[1]<0,i[0]<0,i[0]>x_max)
+                    else:
+                        i[2],i[3]=x,y
+                        B2=(y_max<i[3],i[3]<0,i[2]<0,i[2]>x_max)
+
+        return cutted_lines
+
+
+    def click_Top_Left(self,x,y):
+        #sprawdzenie ktory piunkt na canvasie to left
+        #test dla Camery
+        #print self.m.clickable_Points["Top_Left_Viewpoint"]
+        #print self.m.clickable_Points["Top_Left_Camera"]
+
+        #sprawdzenie czy ejst obiekt
+        if(self.m.have_Object):
+            viewpoint= self.m.clickable_Points["Top_Left_Viewpoint"]
+            camera=self.m.clickable_Points["Top_Left_Camera"]
+            #sprawdzamy czy jest w otoczeniu +-5 w x i y camery
+            if -5<x-camera[0]<5 and -5<y-camera[1]<5:
+                self.clicked_Type="Camera"
+                self.clicked_Top_Left_Camera(x,y)
+            elif -5<x-viewpoint[0]<5 and -5<y-viewpoint[1]<5:
+                self.clicked_Type="Viewport"
+                self.clicked_Top_Left_Viewport(x,y)
+
+    def clicked_Top_Left_Camera(self,x,y):
+        self.m.clicked_Point_Position[0],self.m.clicked_Point_Position[1]=x,y
+        self.m.backup_camera=self.m.camera_Position.copy()
+
+    def clicked_Top_Left_Viewport(self,x,y):
+        self.m.clicked_Point_Position[0],self.m.clicked_Point_Position[1]=x,y
+        self.m.backup_viewport=self.m.viewport_Position.copy()
+
+    def motion_Top_Left(self,x,y):
+        if(self.m.have_Object):
+            if self.clicked_Type=="Camera":
+                self.motion_Top_Left_Camera(x,y)
+            elif self.clicked_Type=="Viewport":
+                self.motion_Top_Left_Viewport(x,y)
+
+
+    def motion_Top_Left_Viewport(self,x,y):
+        dif_X,dif_Y=x-self.m.clicked_Point_Position[0],-(y-self.m.clicked_Point_Position[1])
+        mult=self.m.prescaler*self.m.zoom_Canvas[0]/10.
+        dif_X=dif_X/mult
+        dif_Y=dif_Y/mult
+        self.m.viewport_Position[0]=self.m.backup_viewport[0]+dif_X
+        self.m.viewport_Position[1]=self.m.backup_viewport[1]+dif_Y
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
+
+
+    def motion_Top_Left_Camera(self,x,y):
+        dif_X,dif_Y=x-self.m.clicked_Point_Position[0],-(y-self.m.clicked_Point_Position[1])
+        mult=self.m.prescaler*self.m.zoom_Canvas[0]/10.
+        dif_X=dif_X/mult
+        dif_Y=dif_Y/mult
+        self.m.camera_Position[0]=self.m.backup_camera[0]+dif_X
+        self.m.camera_Position[1]=self.m.backup_camera[1]+dif_Y
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
+
+    def release_Top_Left(self):
+        self.clicked_Type=''
+
+
+
+    #tutaj zaczynam modyfokacje top right
+    def click_Top_Right(self,x,y):
+        #print self.m.clickable_Points["Top_Right_Viewpoint"]
+        #print self.m.clickable_Points["Top_Right_Camera"]
+
+        #sprawdzenie czy ejst obiekt
+        if(self.m.have_Object):
+            viewpoint= self.m.clickable_Points["Top_Right_Viewpoint"]
+            camera=self.m.clickable_Points["Top_Right_Camera"]
+            #sprawdzamy czy jest w otoczeniu +-5 w x i y camery
+            if -5<x-camera[2]<5 and -5<y-camera[1]<5:
+                self.clicked_Type="Camera"
+                self.clicked_Top_Right_Camera(x,y)
+            elif -5<x-viewpoint[2]<5 and -5<y-viewpoint[1]<5:
+                self.clicked_Type="Viewport"
+                self.clicked_Top_Right_Viewport(x,y)
+
+    def clicked_Top_Right_Camera(self,x,y):
+        #x is Z axis
+        self.m.clicked_Point_Position[0],self.m.clicked_Point_Position[1]=x,y
+        self.m.backup_camera=self.m.camera_Position.copy()
+
+    def clicked_Top_Right_Viewport(self,x,y):
+        self.m.clicked_Point_Position[0],self.m.clicked_Point_Position[1]=x,y
+        self.m.backup_viewport=self.m.viewport_Position.copy()
+
+    def motion_Top_Right(self,x,y):
+        if(self.m.have_Object):
+            if self.clicked_Type=="Camera":
+                self.motion_Top_Right_Camera(x,y)
+            elif self.clicked_Type=="Viewport":
+                self.motion_Top_Right_Viewport(x,y)
+
+
+    def motion_Top_Right_Viewport(self,x,y):
+        dif_X,dif_Y=x-self.m.clicked_Point_Position[0],-(y-self.m.clicked_Point_Position[1])
+        mult=self.m.prescaler*self.m.zoom_Canvas[1]/10.
+        dif_X=dif_X/mult
+        dif_Y=dif_Y/mult
+        self.m.viewport_Position[2]=self.m.backup_viewport[2]+dif_X
+        self.m.viewport_Position[1]=self.m.backup_viewport[1]+dif_Y
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
+
+
+    def motion_Top_Right_Camera(self,x,y):
+        dif_X,dif_Y=x-self.m.clicked_Point_Position[0],-(y-self.m.clicked_Point_Position[1])
+        mult=self.m.prescaler*self.m.zoom_Canvas[1]/10.
+        dif_X=dif_X/mult
+        dif_Y=dif_Y/mult
+        self.m.camera_Position[2]=self.m.backup_camera[2]+dif_X
+        self.m.camera_Position[1]=self.m.backup_camera[1]+dif_Y
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
+
+    def release_Top_Right(self):
+        self.clicked_Type=''
+
+    #a tutaj koncze modyfikacja top right
+
+    def click_Bottom_Left(self,x,y):
+        #sprawdzenie ktory piunkt na canvasie to left
+        #test dla Camery
+        #print self.m.clickable_Points["Bottom_Left_Viewpoint"]
+        #print self.m.clickable_Points["Bottom_Left_Camera"]
+
+        #sprawdzenie czy ejst obiekt
+        if(self.m.have_Object):
+            viewpoint= self.m.clickable_Points["Bottom_Left_Viewpoint"]
+            camera=self.m.clickable_Points["Bottom_Left_Camera"]
+            #sprawdzamy czy jest w otoczeniu +-5 w x i y camery
+            if -5<x-camera[0]<5 and -5<y-camera[2]<5:
+                self.clicked_Type="Camera"
+                self.clicked_Bottom_Left_Camera(x,y)
+            elif -5<x-viewpoint[0]<5 and -5<y-viewpoint[2]<5:
+                self.clicked_Type="Viewport"
+                self.clicked_Bottom_Left_Viewport(x,y)
+
+    def clicked_Bottom_Left_Camera(self,x,y):
+        self.m.clicked_Point_Position[0],self.m.clicked_Point_Position[1]=x,y
+        self.m.backup_camera=self.m.camera_Position.copy()
+
+    def clicked_Bottom_Left_Viewport(self,x,y):
+        self.m.clicked_Point_Position[0],self.m.clicked_Point_Position[1]=x,y
+        self.m.backup_viewport=self.m.viewport_Position.copy()
+
+    def motion_Bottom_Left(self,x,y):
+        if(self.m.have_Object):
+            if self.clicked_Type=="Camera":
+                self.motion_Bottom_Left_Camera(x,y)
+            elif self.clicked_Type=="Viewport":
+                self.motion_Bottom_Left_Viewport(x,y)
+
+
+    def motion_Bottom_Left_Viewport(self,x,y):
+        dif_X,dif_Y=x-self.m.clicked_Point_Position[0],-(y-self.m.clicked_Point_Position[1])
+        mult=self.m.prescaler*self.m.zoom_Canvas[2]/10.
+        dif_X=dif_X/mult
+        dif_Y=dif_Y/mult
+        self.m.viewport_Position[0]=self.m.backup_viewport[0]+dif_X
+        self.m.viewport_Position[2]=self.m.backup_viewport[2]+dif_Y
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
+
+
+    def motion_Bottom_Left_Camera(self,x,y):
+        dif_X,dif_Y=x-self.m.clicked_Point_Position[0],-(y-self.m.clicked_Point_Position[1])
+        mult=self.m.prescaler*self.m.zoom_Canvas[2]/10.
+        dif_X=dif_X/mult
+        dif_Y=dif_Y/mult
+        self.m.camera_Position[0]=self.m.backup_camera[0]+dif_X
+        self.m.camera_Position[2]=self.m.backup_camera[2]+dif_Y
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
+
+    def release_Bottom_Left(self):
+        self.clicked_Type=''
+
 
 
     def clear_Canvas(self):
