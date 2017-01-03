@@ -5,6 +5,7 @@ import tkFileDialog
 from Tkinter import DISABLED, NORMAL
 #from scipy.spatial import distance
 import math
+from PIL import  Image,ImageTk
 
 class Controller:
     def __init__(self):
@@ -131,7 +132,7 @@ class Controller:
             #load light parameters
             temp=file.readline()
             elements= [int(s) for s in temp.strip('\n').split(' ')]
-            self.m.light_Position, self.m.light_Color=  tuple(elements[0:3]),tuple(elements[3:])
+            self.m.light_Position, self.m.light_Color=  tuple(elements[0:4]),tuple(elements[3:])
             file.close()
             #####
 
@@ -150,14 +151,28 @@ class Controller:
             self.v.angle_Camera.set(self.m.angle_Camera)
             self.m.have_Object=True
 
-            self.clear_Canvas()
 
-            self.set_Camera_Rectangle_Points()#checked good
-            self.set_Centre_Scene1()#checked good
-            self.set_Canvas()
 
-        except :
-            print 'IOException'
+        except Exception as e:
+            print 'Exception'
+            print e
+
+        self.clear_Canvas()
+
+        # np w tym miejscu powinnismy obliczyc normalne
+        self.Prepare_Normal_Vectors()
+        self.set_Camera_Rectangle_Points()#checked good
+        self.set_Centre_Scene1()#checked good
+        self.set_Canvas()
+
+
+    def Prepare_Normal_Vectors(self):
+        for triangle_nr in range(0,len(self.m.triangle_Verticles)):
+            triangle=self.m.triangle_Verticles[triangle_nr]
+            print triangle
+            verticles= np.transpose( self.m.verticles)
+            points=(verticles[0:3,triangle[0]],verticles[0:3,triangle[1]],verticles[0:3,triangle[2]])
+            self.m.triangle_Normals[triangle_nr]=self.Count_Normal_Vector(points)
 
 
 
@@ -189,6 +204,8 @@ class Controller:
             else:
                 angle=0
         else:
+
+            #print 'test: ',  float(temp_camera[1])/temp_camera[2]
             angle=-math.degrees(math.atan(float(temp_camera[1])/temp_camera[2]))#w code review doogarnac dzielenie
     #rotation OX
         rotateOX=self.rotation_X(angle)
@@ -263,69 +280,15 @@ class Controller:
         This function prepare all of our points to fit into Canvas'es.
         :return:
         """
-        #zmiana rozmoaru bedzie miala miajsce tylko dla zmiany rozdzielczosci ekranu
-        #points_Centre_Scene_View_Verticles=np.copy(self.m.verticles)
-        #points_Centre_Scene_View_Camera=np.copy(self.m.camera_Position)
-        #points_Centre_Scene_View_Viewpoint=np.copy(self.m.viewport_Position)
-        #points_Centre_Scene_View_Rectangle=np.copy(self.m.camera_Rectangle_Points)
 
         if self.m.dispersion*2>min(self.m.canvas_Resolution):
             #self.m.prescaler=self.m.dispersion*2/min(self.m.canvas_Resolution)
             self.m.prescaler=min(self.m.canvas_Resolution)/(self.m.dispersion*2)
         else:
             self.m.prescaler=1.
-       # print 'dispersion'
-       # print self.m.dispersion
-       # print 'resolution'
-       # print self.m.canvas_Resolution
-       # print 'prescaler'
-        #print self.m.prescaler
-       # print 'w srodku prescalera'
         self.prepare_Top_Left_Points()
         self.prepare_Bottom_Left_Points()
         self.prepare_Top_Right_Points()
-
-       # print zoom
-       # translation=self.translation(*(self.m.centre_World_Scene[:3]*(-self.m.prescaler)))
-      #  print 'macierz translacji stara'
-       # print translation
-      #  prescale_Matrix=self.scale_Matrix(self.m.prescaler)
-      #  print 'macierz skalowania stara'
-      #  print prescale_Matrix
-        #najpierw transpozycja i pozniej zmniejszanie
-        #czy najpierw zmniejszanie a pozniej ta dziwna transpozycja
-        #prescale all scene
-
-
-     #   points_Centre_Scene_View_Verticles=np.dot(prescale_Matrix,np.transpose(points_Centre_Scene_View_Verticles))
-      #  points_Centre_Scene_View_Camera=np.dot(prescale_Matrix,np.transpose(points_Centre_Scene_View_Camera))
-      #  points_Centre_Scene_View_Viewpoint=np.dot(prescale_Matrix,np.transpose(points_Centre_Scene_View_Viewpoint))
-      #  points_Centre_Scene_View_Rectangle=np.dot(prescale_Matrix,np.transpose(points_Centre_Scene_View_Rectangle))
-        #move axis to centre of scene
-     #   points_Centre_Scene_View_Verticles=np.dot(translation,points_Centre_Scene_View_Verticles)
-     #   points_Centre_Scene_View_Camera=np.dot(translation,points_Centre_Scene_View_Camera)
-      #  points_Centre_Scene_View_Viewpoint=np.dot(translation,points_Centre_Scene_View_Viewpoint)
-      #  points_Centre_Scene_View_Rectangle=np.dot(translation,points_Centre_Scene_View_Rectangle)
-
-        #to ponizej wyglada git i to co jest pozniej
-        #cos nie gra z prescalerem
-        #How translations whould be corrected:(all points fit into canvas(plus values))
-        #yox Y-1/2 HEIGHT X 1/2 WIDTH
-        #zox Z-1/2 HEIGHT X 1/2 WIDTH
-        #0-width 1-height
-      #  translation_Left_Canvas=self.translation(self.m.canvas_Resolution[0]/2., self.m.canvas_Resolution[1]/2., self.m.canvas_Resolution[1]/2.)
-      #  self.m.Top_Left_Canvas_Verticles=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Verticles)
-     #   self.m.Top_Left_Canvas_Camera=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Camera)
-      #  self.m.Top_Left_Canvas_Viewpoint=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Viewpoint)
-      #  self.m.Top_Left_Canvas_Rectangle=np.dot(translation_Left_Canvas,points_Centre_Scene_View_Rectangle)
-
-
-        #zoy z-1/2 WIDTH y 1/2 Height
-       # translation_Top_Right_Canvas=self.translation(self.m.canvas_Resolution[0]/2., self.m.canvas_Resolution[1]/2., self.m.canvas_Resolution[0]/2.)
-      #  self.m.Top_Right_Canvas_Verticles=np.dot(translation_Top_Right_Canvas, points_Centre_Scene_View_Verticles)
-       # self.m.Top_Right_Canvas_Camera=np.dot(translation_Top_Right_Canvas, points_Centre_Scene_View_Camera)
-       # self.m.Top_Right_Canvas_Viewpoint=np.dot(translation_Top_Right_Canvas, points_Centre_Scene_View_Viewpoint)
-       # self.m.Top_Right_Canvas_Rectangle=np.dot(translation_Top_Right_Canvas, points_Centre_Scene_View_Rectangle)
 
 
     def prepare_Bottom_Left_Points(self):
@@ -338,24 +301,23 @@ class Controller:
         points_Centre_Scene_View_Camera=np.dot(prescale_Matrix,np.transpose(self.m.camera_Position))
         points_Centre_Scene_View_Viewpoint=np.dot(prescale_Matrix,np.transpose(self.m.viewport_Position))
         points_Centre_Scene_View_Rectangle=np.dot(prescale_Matrix,np.transpose(self.m.camera_Rectangle_Points))
+        points_Centre_Scene_View_Light=np.dot(prescale_Matrix,np.transpose(self.m.light_Position))
         #Move axis to centre of scene
         points_Centre_Scene_View_Verticles=np.dot(translation,points_Centre_Scene_View_Verticles)
         points_Centre_Scene_View_Camera=np.dot(translation,points_Centre_Scene_View_Camera)
         points_Centre_Scene_View_Viewpoint=np.dot(translation,points_Centre_Scene_View_Viewpoint)
         points_Centre_Scene_View_Rectangle=np.dot(translation,points_Centre_Scene_View_Rectangle)
+        points_Centre_Scene_View_Light=np.dot(translation,points_Centre_Scene_View_Light)
         #Adjust scene to resolution of canvas
         translation_Left_Canvas=self.translation(self.m.canvas_Resolution[0]/2., 0,self.m.canvas_Resolution[1]/2.)
         self.m.Bottom_Left_Canvas_Verticles=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Verticles)
         self.m.Bottom_Left_Canvas_Camera=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Camera)
         self.m.Bottom_Left_Canvas_Viewpoint=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Viewpoint)
         self.m.Bottom_Left_Canvas_Rectangle=np.dot(translation_Left_Canvas,points_Centre_Scene_View_Rectangle)
+        self.m.Bottom_Left_Canvas_Light=np.dot(translation_Left_Canvas,points_Centre_Scene_View_Light)
+
 
     def prepare_Top_Left_Points(self):
-        #points_Centre_Scene_View_Verticles=np.copy(self.m.verticles)
-        #points_Centre_Scene_View_Camera=np.copy(self.m.camera_Position)
-        #points_Centre_Scene_View_Viewpoint=np.copy(self.m.viewport_Position)
-        #points_Centre_Scene_View_Rectangle=np.copy(self.m.camera_Rectangle_Points)
-
         zoom= self.m.zoom_Canvas[0]/10.
         translation=self.translation(*(self.m.centre_World_Scene[:3]*(-self.m.prescaler*zoom)))
         prescale_Matrix=self.scale_Matrix(self.m.prescaler*zoom)
@@ -364,17 +326,20 @@ class Controller:
         points_Centre_Scene_View_Camera=np.dot(prescale_Matrix,np.transpose(self.m.camera_Position))
         points_Centre_Scene_View_Viewpoint=np.dot(prescale_Matrix,np.transpose(self.m.viewport_Position))
         points_Centre_Scene_View_Rectangle=np.dot(prescale_Matrix,np.transpose(self.m.camera_Rectangle_Points))
+        points_Centre_Scene_View_Light=np.dot(prescale_Matrix,np.transpose(self.m.light_Position))
         #Move axis to centre of scene
         points_Centre_Scene_View_Verticles=np.dot(translation,points_Centre_Scene_View_Verticles)
         points_Centre_Scene_View_Camera=np.dot(translation,points_Centre_Scene_View_Camera)
         points_Centre_Scene_View_Viewpoint=np.dot(translation,points_Centre_Scene_View_Viewpoint)
         points_Centre_Scene_View_Rectangle=np.dot(translation,points_Centre_Scene_View_Rectangle)
+        points_Centre_Scene_View_Light=np.dot(translation,points_Centre_Scene_View_Light)
         #Adjust scene to resolution of canvas
         translation_Left_Canvas=self.translation(self.m.canvas_Resolution[0]/2., self.m.canvas_Resolution[1]/2.,0)
         self.m.Top_Left_Canvas_Verticles=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Verticles)
         self.m.Top_Left_Canvas_Camera=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Camera)
         self.m.Top_Left_Canvas_Viewpoint=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Viewpoint)
         self.m.Top_Left_Canvas_Rectangle=np.dot(translation_Left_Canvas,points_Centre_Scene_View_Rectangle)
+        self.m.Top_Left_Canvas_Light=np.dot(translation_Left_Canvas,points_Centre_Scene_View_Light)
 
     def prepare_Top_Right_Points(self):
         zoom= self.m.zoom_Canvas[1]/10.
@@ -384,18 +349,21 @@ class Controller:
         points_Centre_Scene_View_Camera=np.dot(prescale_Matrix,np.transpose(self.m.camera_Position))
         points_Centre_Scene_View_Viewpoint=np.dot(prescale_Matrix,np.transpose(self.m.viewport_Position))
         points_Centre_Scene_View_Rectangle=np.dot(prescale_Matrix,np.transpose(self.m.camera_Rectangle_Points))
+        points_Centre_Scene_View_Light=np.dot(prescale_Matrix,np.transpose(self.m.light_Position))
         #Move axis to centre of scene
         points_Centre_Scene_View_Verticles=np.dot(translation,points_Centre_Scene_View_Verticles)
         points_Centre_Scene_View_Camera=np.dot(translation,points_Centre_Scene_View_Camera)
         points_Centre_Scene_View_Viewpoint=np.dot(translation,points_Centre_Scene_View_Viewpoint)
         points_Centre_Scene_View_Rectangle=np.dot(translation,points_Centre_Scene_View_Rectangle)
+        points_Centre_Scene_View_Light=np.dot(translation,points_Centre_Scene_View_Light)
+
         #Adjust scene to resolution of canvas
         translation_Left_Canvas=self.translation(0, self.m.canvas_Resolution[1]/2., self.m.canvas_Resolution[0]/2.)
         self.m.Top_Right_Canvas_Verticles=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Verticles)
         self.m.Top_Right_Canvas_Camera=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Camera)
         self.m.Top_Right_Canvas_Viewpoint=np.dot(translation_Left_Canvas, points_Centre_Scene_View_Viewpoint)
         self.m.Top_Right_Canvas_Rectangle=np.dot(translation_Left_Canvas,points_Centre_Scene_View_Rectangle)
-
+        self.m.Top_Right_Canvas_Light=np.dot(translation_Left_Canvas,points_Centre_Scene_View_Light)
 
     def set_Canvas(self):
         #pobranie wszystkich danych i przemielenie ich w podrecznym buforze tak aby mozna go bylu zrzutowac na wszystkie
@@ -448,15 +416,153 @@ class Controller:
         #tworzymy reprezentacje punktow w macierzy NUMPY i wrzucamy to jako obraz do CANVASU
         to_Canvas_View=np.dot(self.translation(0,self.m.canvas_Resolution[1],0),self.scale_Matrix2(1,-1,1))
         verticles=np.dot(to_Canvas_View,self.m.Top_Left_Canvas_Verticles)
+        
+        background=self.Generate_Top_Left_Canvas_Background(verticles)
+        image2 = Image.fromarray(self.m.top_Left_Background,'RGB')
+        self.image_TK_TL = ImageTk.PhotoImage(image2)
+        id=self.v.canvas_Top_Left.create_image(self.m.canvas_Resolution[0]/2, self.m.canvas_Resolution[1]/2, image=self.image_TK_TL)
+       # print 'color',self.m.triangle_Color[0]
+
+
+        self.v.canvas_Top_Left.lower(id)#danie obrazku na dol
+
+
         for i in self.m.triangle_Verticles:
             for j in range(-1,2):
                 self.v.canvas_Top_Left.create_line(verticles[0][i[j]],verticles[1][i[j]],verticles[0][i[j+1]],verticles[1][i[j+1]])
+
+
+
+
+    def Generate_Top_Left_Canvas_Background(self,verticles):
+        z=-1.7976931348623157e+308
+        self.m.top_Left_Background=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0],3),255,dtype=np.uint8)
+        self.m.top_Left_Depth=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0]),z)
+
+        for triangle_nr in range(0,len(self.m.triangle_Verticles)):
+            triangle=self.m.triangle_Verticles[triangle_nr]
+            points=(verticles[0:3,triangle[0]],verticles[0:3,triangle[1]],verticles[0:3,triangle[2]])
+            #normal_Vector=self.Count_Normal_Vector(points)
+            normal_Vector=self.m.triangle_Normals[triangle_nr]
+            plane_Equation=self.Count_Plane(normal_Vector,points[0])
+            #print points
+            #w,h=1,1
+            #normal_Vector,plane_Equation=self.Count_Normal_Vector(points)
+            #print 'normal Vector', normal_Vector
+            #print 'plane_Equation', plane_Equation
+            #oblicz punkt przeciecia
+            #inside,cross_Point=self.Count_Cross_Point(np.array([w,h,0]),np.array([w,h,1]),plane_Equation,points)
+            #print inside, cross_Point
+            #(w,h,0),(w,h,1),#startowy i poczatkowy punkt dla top left lini przecinajacej
+            #print 'wejszlo'
+
+            for w in range(0,self.m.canvas_Resolution[0]):
+                for h in range(0, self.m.canvas_Resolution[1]):
+                    inside,cross_Point=self.Count_Cross_Point(np.array([w,h,0]),np.array([w,h,1]),plane_Equation,points)
+                    if inside:
+                        #dist=self.count_3d_Distance(cross_Point,np.array([w,h,0]))
+                        #print cross_Point[2]
+                        #print self.m.top_Left_Depth[w,h]
+            #zapamietac!!! > dla perspektywy widoku perspektywicznego a dla moich wydokow 3ch <
+                        if self.m.top_Left_Depth[h,w]<cross_Point[2]:
+                            self.m.top_Left_Depth[h,w]=cross_Point[2]
+                            #print self.m.triangle_Color[triangle_nr]
+                            color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector)
+                            #print self.m.triangle_Color[triangle_nr], triangle_nr
+                            self.m.top_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
+
+
+
+    def phong_Color_Shading(self,triangle_Nr,cross_Point,normal_Vector):
+        #r=self.count_3d_Distance()
+        pass
+        #wyznacz odleglosc r
+        #sprawdz czy slonce jest na dobrym miejscu
+        #oblicz farrt
+        #znormalizuj wektor normalny
+
+
+
+    def point_in_triangle(self,x,y, x0,y0, x1,y1, x2,y2):
+    #barycentric algorithm
+        x  -= x2 # przesuniecie wszystkich punktow
+        x0 -= x2 # o wektor (-x2,-y2)
+        x1 -= x2
+        y  -= y2
+        y0 -= y2
+        y1 -= y2
+        det = x0*y1 - y0*x1
+        det = float(x0*y1 - y0*x1)
+        if  abs(det) < 0.0000000000000000000000000000000001: # brak rozwiazan
+            return False
+
+        t0 = ( x*y1 -  y*x1)/det
+        t1 = (x0*y  - y0*x )/det
+
+        if t0 < 0 or t1 < 0 or t0+t1 > 1:
+            return False
+        else:
+            return True
+
+    # punkty to trzyelementowe krotki (x,y,z)
+    def point_in_triangle3D(self,p, p0,p1,p2):
+        x,y,z = p
+        x0,y0,z0 = p0
+        x1,y1,z1 = p1
+        x2,y2,z2 = p2
+
+        dx = max(x0,x1,x2) - min(x0,x1,x2) # wysokosci
+        dy = max(y0,y1,y2) - min(y0,y1,y2) # prostopadloscianu
+        dz = max(z0,z1,z2) - min(z0,z1,z2)
+
+        min_height = min(dx,dy,dz)
+
+        if dx == min_height: # plaszczyzna YZ: pomijamy wsp. x
+            return self.point_in_triangle(y,z, y0,z0, y1,z1, y2,z2)
+
+        if dy == min_height: # plaszczyzna ZX: pomijamy wsp. y
+            return self.point_in_triangle(z,x, x0,z0, x1,z1, x2,z2)
+
+        if dz == min_height: # plaszczyzna XY: pomijamy wsp. z
+            return self.point_in_triangle(x,y, x0,y0, x1,y1, x2,y2)
+
+
+    def Count_Cross_Point(self,start_point,second_point,plane_Equation,points):
+        first_Line_Factor=np.array([start_point[0]-second_point[0],start_point[1]-second_point[1],start_point[2]-second_point[2]])
+        top=-((second_point*plane_Equation[:3]).sum()+plane_Equation[3])
+        bot=(plane_Equation[:3]*first_Line_Factor).sum()
+        if (bot==0):
+            return False, None
+        t=top/bot
+        ret=first_Line_Factor*t+second_point
+        is_In=self.point_in_triangle3D(ret,points[0],points[1],points[2])
+        if is_In :
+            return True, ret
+        else:
+            return False,None
+
+
+    def Count_Normal_Vector(self,points):
+        v0=points[0]-points[1]
+        v1=points[2]-points[1]
+        normal_Vector=np.cross(v0,v1)
+        dist=self.count_3d_Distance([0,0,0],normal_Vector)
+        return normal_Vector/dist
+
+    def Count_Plane(self, normal_vector, point):
+        #dajemy tutaj point 0
+        D=-np.sum(point*normal_vector)
+        return np.array([normal_vector[0],normal_vector[1],normal_vector[2],D])
+
+    def count_3d_Distance(self,point1, point2):
+        dist=math.sqrt(pow(long(point1[0])-long(point2[0]),2)+pow(long(point1[1])-long(point2[1]),2)+pow(long(point1[2])-long(point2[2]),2))
+        return dist
 
     def Refresh_Top_Right_Canvas(self):
         #tworzymy reprezentacje punktow w macierzy NUMPY i wrzucamy to jako obraz do CANVASU
         to_Canvas_View=np.dot(self.translation(0,self.m.canvas_Resolution[1],0),self.scale_Matrix2(1,-1,1))
         verticles=np.dot(to_Canvas_View,self.m.Top_Right_Canvas_Verticles)
-       # print 'verticles'
+        #print 'verticles'
         #print verticles
         #print 'points'
         ##chwilowe rozwiazanie by sprawdzic jak wyglada to wszystko po przeksztalceniach
@@ -483,11 +589,12 @@ class Controller:
                 pass
                 self.v.canvas_Bottom_Left.create_line(verticles[0][i[j]],verticles[2][i[j]],verticles[0][i[j+1]],verticles[2][i[j+1]])
 
+
+
+
     def Refresh_Bottom_Right_Canvas(self):
         pass
 
-    def Normalize_Matrix(self):
-        pass
 
     def Draw_Camera_Triangle(self):
         #mozna pomyslec nad rozdzieleniem do poszczegolnych canvasow tych przeksztalcen
@@ -526,6 +633,7 @@ class Controller:
      #   self.v.canvas_Top_Right.create_line(camera[2],camera[1], viewport[2], viewport[1],fill='red', width=3 )
      #   for i in range(-1,3):
      #       self.v.canvas_Top_Right.create_line(points[2][i],points[1][i],points[2][i+1],points[1][i+1])
+
 
     def Draw_Top_Left_Camera_Triangle(self, matrix):
         camera=np.dot(matrix,self.m.Top_Left_Canvas_Camera)
@@ -844,7 +952,6 @@ class Controller:
 
     def release_Bottom_Left(self):
         self.clicked_Type=''
-
 
 
     def clear_Canvas(self):

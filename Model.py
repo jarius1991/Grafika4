@@ -38,6 +38,19 @@ class Model:
         self.point_Clicked_Canvas=[0,0]
         self.clicked_Point_Position={}
 
+        self.top_Left_Background=None
+        self.top_Left_Depth=None
+
+        self.top_Right_Background=None
+        self.top_Right_Depth=None
+
+        self.bottom_Left_Background=None
+        self.bottom_Left_Depth=None
+        self.triangle_Normals={}
+        self.triangle_Planes={}
+        self.verticle_Normals={}
+
+
 
 
 
