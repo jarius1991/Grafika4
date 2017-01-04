@@ -46,9 +46,9 @@ class Model:
 
         self.bottom_Left_Background=None
         self.bottom_Left_Depth=None
-        self.triangle_Normals={}
-        self.triangle_Planes={}
-        self.verticle_Normals={}
+        self.triangle_Normals=None
+       # self.triangle_Planes=None
+        self.verticle_Normals=None
 
 
 
