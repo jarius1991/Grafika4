@@ -46,9 +46,18 @@ class Model:
 
         self.bottom_Left_Background=None
         self.bottom_Left_Depth=None
+
+
         self.triangle_Normals=None
        # self.triangle_Planes=None
         self.verticle_Normals=None
+        self.Refresh_Background=False
+        self.Refresh_Camera_View=False
+        self.BLP=False
+        self.numer=-1
+        self.Resize_Top_Left=False
+        self.Resize_Top_Right=False
+        self.Resize_Bottom_Left=False
 
 
 
