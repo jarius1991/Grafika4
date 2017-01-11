@@ -7,6 +7,10 @@ from Tkinter import DISABLED, NORMAL
 #from scipy.spatial import distance
 import math
 from PIL import  Image,ImageTk,ImageOps
+#import pickle
+#import scipy.ndimage
+import cv2
+
 
 class Controller:
     def __init__(self):
@@ -21,9 +25,20 @@ class Controller:
             self.clear_Canvas()
             self.set_Canvas()
 
+    def angle_Update(self):
+        if(self.m.have_Object):
+            self.set_Camera_Rectangle_Points()
+            self.clear_Canvas()
+            self.m.Refresh_Camera_View=True
+            self.set_Canvas()
 
-        #jesli sa punkty dla kamery to nalezy je zmienic, jezeli wyjda poza obszar kamery to nalez zmienic rozmiar,
-
+    def Resize_Window(self):
+        if(self.m.have_Object):
+            self.set_Camera_Rectangle_Points()
+            self.clear_Canvas()
+            self.m.Refresh_Background=True
+            self.m.Refresh_Camera_View=True
+            self.set_Canvas()
 
     def Zoom_Top_Left_Plus(self):
         if(self.m.zoom_Canvas[0]==9):#Disable if max
@@ -34,9 +49,10 @@ class Controller:
 
         if(self.m.zoom_Canvas[0]>1):#Minus active if not 1
             self.v.minus_Top_Left_Button['state']=NORMAL
-        print (self.m.zoom_Canvas[0])
+        #print (self.m.zoom_Canvas[0])
         if(self.m.have_Object):
             self.clear_Canvas()
+            #self.m.backup_Bottom_Left_Background=self.m
             self.m.Resize_Top_Left=True
             self.set_Canvas()
 
@@ -46,7 +62,7 @@ class Controller:
             self.v.minus_Top_Left_Button['state']=DISABLED
         if(self.m.zoom_Canvas[0]<10):#Plus active if not 10
             self.v.plus_Top_Left_Button['state']=NORMAL
-        print (self.m.zoom_Canvas[0])
+        #print (self.m.zoom_Canvas[0])
         if(self.m.have_Object):
             self.clear_Canvas()
             self.m.Resize_Top_Left=True
@@ -63,7 +79,7 @@ class Controller:
 
         if(self.m.zoom_Canvas[1]>1):#Minus active if not 1
             self.v.minus_Top_Right_Button['state']=NORMAL
-        print (self.m.zoom_Canvas[1])
+        #print (self.m.zoom_Canvas[1])
         if(self.m.have_Object):
             self.clear_Canvas()
             self.m.Resize_Top_Right=True
@@ -107,12 +123,13 @@ class Controller:
         print (self.m.zoom_Canvas[2])
         if(self.m.have_Object):
             self.clear_Canvas()
-            self.Refresh_Bottom_Left_Canvas()
+            self.m.Resize_Bottom_Left=True
+            #self.Refresh_Bottom_Left_Canvas()
             self.set_Canvas()
 
     def Open_Data(self):
 
-        try:
+       # try:
 
             source=tkFileDialog.askdirectory()
             #####open model
@@ -155,6 +172,7 @@ class Controller:
             #print self.m.angle_Camera
             file.close()
             #####
+            self.Set_Zoom()
             self.v.angle_Camera.set(self.m.angle_Camera)
             self.m.have_Object=True
             self.clear_Canvas()
@@ -165,13 +183,31 @@ class Controller:
             self.set_Camera_Rectangle_Points()#checked good
             self.set_Centre_Scene1()#checked good
             self.set_Canvas()
+            self.Backup_Background()
+            #dozap=pickle.o
+            #output = open('data.jpg', 'wb')
+            #pickle.dump(self.m.top_Left_Background,output)
 
-        except Exception as e:
-            print 'Exception'
+      #  except Exception as e:
+         #   print 'Exception'
             #Image.fromarray(self.m.top_Right_Background,'RGB').show()
             #print e
 
 
+    def Set_Zoom(self):
+        self.m.zoom_Canvas[0],self.m.zoom_Canvas[1],self.m.zoom_Canvas[2]=10,10,10
+
+        self.v.minus_Bottom_Left_Button['state']=NORMAL
+        self.v.plus_Bottom_Left_Button['state']=DISABLED
+        self.v.minus_Top_Right_Button['state']=NORMAL
+        self.v.plus_Top_Right_Button['state']=DISABLED
+        self.v.minus_Top_Left_Button['state']=NORMAL
+        self.v.plus_Top_Left_Button['state']=DISABLED
+
+    def Backup_Background(self):
+        self.m.backup_Bottom_Left_Background=self.m.bottom_Left_Background.copy()
+        self.m.backup_Top_Left_Background=self.m.top_Left_Background.copy()
+        self.m.backup_Top_Right_Background=self.m.top_Right_Background.copy()
 
 
     def Prepare_Normal_Vectors(self):
@@ -192,12 +228,17 @@ class Controller:
         temp_viewport=self.m.viewport_Position[:]
         dist=math.sqrt(pow(temp_camera[0]-temp_viewport[0],2)+pow(temp_camera[1]-temp_viewport[1],2)+pow(temp_camera[2]-temp_viewport[2],2))
         coord=math.tan(math.radians(float(self.m.angle_Camera/2)))*dist
-        points=np.array([[coord ,coord, 0,1],
-                        [coord,-coord, 0,1],
-                        [-coord,-coord,0,1],
-                        [-coord,coord,0,1]])
+        #points=np.array([[coord ,coord, 0,1],#wersja przed
+        #                [coord,-coord, 0,1],
+        #                [-coord,-coord,0,1],
+         #               [-coord,coord,0,1]])
+        #wersja po
+        points=np.array([[-coord ,coord, 0,1],
+                        [-coord,-coord, 0,1],
+                        [coord,-coord,0,1],
+                        [coord,coord,0,1]])
         self.m.camera_Rectangle_Points=np.transpose(np.dot(self.reverse_Camera_Matrix(),np.transpose(points)))
-        print self.m.camera_Rectangle_Points
+        #print self.m.camera_Rectangle_Points
 
 
 
@@ -205,6 +246,70 @@ class Controller:
         #used to set rectangle points in right place in space
         temp_camera=self.m.camera_Position.copy()
         temp_viewport=self.m.viewport_Position.copy()
+        temp_camera=temp_camera-temp_viewport
+        angle=0
+        if(temp_camera[2]==0):
+            if(temp_camera[1]>0):
+                angle=-90
+            elif(temp_camera[1]<0):
+                angle=90
+            else:
+                angle=0
+        else:
+            if(temp_camera[2]>0):
+                angle=180
+            angle=angle + math.degrees(math.atan(float(temp_camera[1])/temp_camera[2]))#w code review doogarnac dzielenie
+
+    #rotation OX
+        rotateOX=self.rotation_X(-angle)
+        rotateOX_toCompute=self.rotation_X(angle)#do obliczenia transformacji do punktu na Z
+        top=math.sqrt(pow(temp_camera[1],2) + pow(temp_camera[2],2))
+
+        #if(temp_camera[2]==0):#top musi byc rowny 0
+        if(top==0):#top musi byc rowny 0
+            if temp_camera[0]==0:
+                angle=0
+            elif temp_camera[0]>0:
+                angle=90
+            else:
+                angle=-90
+        else:
+            angle=math.degrees(  math.atan( float(temp_camera[0])/top  )  )
+
+
+    #rotation OY
+        rotateOY=self.rotation_Y(-angle)
+        rotateOY_toCompute=self.rotation_Y(angle)#do obliczenia transformacji do punktu na Z
+
+        translate=self.translation(temp_viewport[0],temp_viewport[1],temp_viewport[2])
+       # translate_toCompute=self.translation(-temp_viewport[0],-temp_viewport[1],-temp_viewport[2])#to nie jest potrzebne bo na poczatku odjalem viewport
+
+        matrix_toCompute=np.dot(rotateOY_toCompute,rotateOX_toCompute)
+
+        Y=np.array([[0],[1],[0],[1]])
+        Y= np.dot(matrix_toCompute,Y)
+
+        angle=0
+
+        if Y[1]==0:
+            if Y[0]>0:
+                angle=90
+            elif Y[0]<0:
+                angle=-90
+        else:
+            if Y[1]<0:
+                angle=180
+            angle=angle + math.degrees(math.atan(float(Y[0])/Y[1]))#kat potrzebny do wyprostowania kamery jak znajdzie sie na z
+        rotateOZ=self.rotation_Z(-angle)
+        matrix=np.dot(rotateOY,rotateOZ)
+        matrix=np.dot(rotateOX,matrix)
+        return np.dot(translate,matrix)
+
+    def reverse_Camera_Matrix1(self):#old one
+        #used to set rectangle points in right place in space
+        temp_camera=self.m.camera_Position.copy()
+        temp_viewport=self.m.viewport_Position.copy()
+        temp_camera=temp_camera-temp_viewport
         angle=0
         if(temp_camera[2]==0):
             if(temp_camera[1]>0):
@@ -243,28 +348,47 @@ class Controller:
         matrix=np.dot(rotateOX,matrix)
         return np.dot(translate,matrix)
 
-
     def translation(self,x,y,z):
         return np.array([[1 ,0 , 0,x],
                         [0 ,1 , 0,y],
                         [0,0,1,z],
                         [0,0,0,1]])
 
+    def count_Sin_Cos(self,angle):
+        cosinus=0
+        if np.allclose(math.cos(math.radians(angle)), 0)==False:
+            cosinus=math.cos(math.radians(angle))
+        sinus=0
+        if np.allclose(math.sin(math.radians(angle)), 0)==False:
+            sinus=math.sin(math.radians(angle))
+        return sinus,cosinus
+
+
     def rotation_X(self,angle):
+        #cosinus=np.allclose(0,math.cos(math.radians(angle)), 0)
+        #sinus=np.allclose(0,math.sin(math.radians(angle)), 0)
+        sinus,cosinus=self.count_Sin_Cos(angle)
         return np.array([[1 ,0 , 0,0],
-                        [0 ,math.cos(math.radians(angle)),-math.sin(math.radians(angle)),0],
-                        [0,math.sin(math.radians(angle)),math.cos(math.radians(angle)),0],
+                        [0 ,cosinus,-sinus,0],
+                        [0,sinus,cosinus,0],
                         [0,0,0,1]])
 
     def rotation_Y(self,angle):
-        return np.array([[math.cos(math.radians(angle)) ,0 , math.sin(math.radians(angle)),0],
+        #cosinus=np.allclose(math.cos(math.radians(angle)), 0)
+        #sinus=np.allclose(math.sin(math.radians(angle)), 0)
+        sinus,cosinus=self.count_Sin_Cos(angle)
+
+        return np.array([[cosinus ,0 , sinus,0],
                         [0 ,1,0,0],
-                        [-math.sin(math.radians(angle)),0,math.cos(math.radians(angle)),0],
+                        [-sinus,0,cosinus,0],
                         [0,0,0,1]])
 
     def rotation_Z(self,angle):
-        return np.array([[math.cos(math.radians(angle)) ,-math.sin(math.radians(angle)) ,0 ,0],
-                        [math.sin(math.radians(angle)) ,math.cos(math.radians(angle)),0,0],
+       # cosinus=np.allclose(math.cos(math.radians(angle)), 0)
+       # sinus=np.allclose(math.sin(math.radians(angle)), 0)
+        sinus,cosinus=self.count_Sin_Cos(angle)
+        return np.array([[cosinus ,-sinus ,0 ,0],
+                        [sinus ,cosinus,0,0],
                         [0,0,1,0],
                         [0,0,0,1]])
 
@@ -385,7 +509,7 @@ class Controller:
                 self.Refresh_Top_Right_Canvas()
                 self.m.Resize_Top_Right=False
             if self.m.Resize_Bottom_Left:
-                self.m.Resize_Bottom_Left
+                self.Refresh_Bottom_Left_Canvas()
                 self.m.Resize_Bottom_Left=False
 
             self.Set_Top_Left_Canvas()
@@ -395,9 +519,10 @@ class Controller:
 
             #funkcje tylko wstawiajace obliczony background
         if(self.m.Refresh_Camera_View):
-            self.Refresh_Bottom_Right_Canvas()
+            self.Refresh_Bottom_Right_Canvas1()
             #tutaj wstaw funkcje odswierzajaca czwarte okno
             self.m.Refresh_Camera_View=False
+            print 'refreshniete juz'
 
 
 
@@ -439,7 +564,7 @@ class Controller:
         normal= self.m.triangle_Normals.copy()
         normal[:,1]=-normal[:,1]
 
-        background=self.Generate_Top_Left_Canvas_Background(verticles, normal, light, camera)
+        background=self.Generate_Top_Left_Canvas_Background1(verticles, normal, light, camera)
 
         id=self.Set_Top_Left_Canvas()
 
@@ -449,7 +574,9 @@ class Controller:
 
     def Set_Top_Left_Canvas(self):
         image2 = Image.fromarray(self.m.top_Left_Background,'RGB')
+
         self.image_TK_TL = ImageTk.PhotoImage(image2)
+        #cv2.resize(self.image_TK_TL, (self.m.zoom_Canvas[0]*image2.size[0]/10,self.m.zoom_Canvas[0]*image2.size[1]/10), interpolation = cv2.INTER_CUBIC)
         id=self.v.canvas_Top_Left.create_image(self.m.canvas_Resolution[0]/2, self.m.canvas_Resolution[1]/2, image=self.image_TK_TL)
         self.v.canvas_Top_Left.lower(id)#danie obrazku na dol
         return id
@@ -484,12 +611,35 @@ class Controller:
                             #print self.m.triangle_Color[triangle_nr], triangle_nr
                             #self.m.top_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
                             self.m.top_Left_Background[h,w]=color
+    def Generate_Top_Left_Canvas_Background1(self, verticles, normal, light_point, camera):
+        z=-1.7976931348623157e+308
+        self.m.top_Left_Background=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0],3),255,dtype=np.uint8)
+        self.m.top_Left_Depth=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0]),z)
+
+        first_Line_Factor=np.array([0,0,-1])
+        for triangle_nr in range(0,len(self.m.triangle_Verticles)):
+            triangle=self.m.triangle_Verticles[triangle_nr]
+            points=(verticles[0:3,triangle[0]],verticles[0:3,triangle[1]],verticles[0:3,triangle[2]])
+
+            normal_Vector=normal[triangle_nr]
+            plane_Equation=self.Count_Plane(normal_Vector,points[0])
+
+            for w in range(0,self.m.canvas_Resolution[0]):
+                for h in range(0, self.m.canvas_Resolution[1]):
+                    if self.point_in_triangle(w,h,points[0][0],points[0][1],points[1][0],points[1][1],points[2][0],points[2][1]):
+                        cross_Point=self.Count_Cross_Point_Ortogonal(first_Line_Factor,np.array([w,h,-1]),plane_Equation,points)
+                        if self.m.top_Left_Depth[h,w]<cross_Point[2]:
+                            self.m.top_Left_Depth[h,w]=cross_Point[2]
+                            color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
+                           # print 'self.m.triangle_Color[triangle_nr]',self.m.triangle_Color[triangle_nr]
+
+                            #self.m.top_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
+                            self.m.top_Left_Background[h,w]=color
+
 
 
 
     def phong_Color_Shading(self,triangle_Nr,cross_Point,normal_Vector,light_point, camera):
-       # print 'cross_Point',cross_Point
-       # print 'light_point',light_point[:3]
         if np.dot(normal_Vector,light_point[:3]-cross_Point)<0:
             return self.m.triangle_Color[triangle_Nr]
         r=self.count_3d_Distance(cross_Point,camera)
@@ -511,9 +661,6 @@ class Controller:
         if dist!=0:
             Os=Os/dist
 
-        #test if angles between light and
-       # print 'numer trojkata: ',triangle_Nr
-        #Phong light model for each color(RGB)
         colors=[int(self.m.triangle_Color[triangle_Nr][i]+self.m.triangle_Surface[triangle_Nr][0]*f*self.m.light_Color[i]*np.dot(normal_Vector,I)+self.m.triangle_Surface[triangle_Nr][1]*f*self.m.light_Color[i]*pow(np.dot(I,Os),self.m.triangle_Surface[triangle_Nr][2])) for i in range(0,3)]
 
 
@@ -598,7 +745,7 @@ class Controller:
             return self.point_in_triangle(y,z, y0,z0, y1,z1, y2,z2)
 
         if dy == min_height: # plaszczyzna ZX: pomijamy wsp. y
-            return self.point_in_triangle(z,x, x0,z0, x1,z1, x2,z2)
+            return self.point_in_triangle(x,z, x0,z0, x1,z1, x2,z2)
 
         if dz == min_height: # plaszczyzna XY: pomijamy wsp. z
             return self.point_in_triangle(x,y, x0,y0, x1,y1, x2,y2)
@@ -644,16 +791,10 @@ class Controller:
         camera=np.dot(to_Canvas_View,self.m.Top_Right_Canvas_Camera)
         normal= self.m.triangle_Normals.copy()
         normal[:,1]=-normal[:,1]
-        background=self.Generate_Top_Right_Canvas_Background(verticles, normal, light, camera)
-        #for i in self.m.triangle_Verticles:
-         #   for j in range(-1,2):
-                #i[j] indeks pierwszego wierzcholka i[j+1] indeks drugiego wierzcholka
-          #      pass
-          #      self.v.canvas_Top_Right.create_line(verticles[2][i[j]],verticles[1][i[j]],verticles[2][i[j+1]],verticles[1][i[j+1]])
-
+        background=self.Generate_Top_Right_Canvas_Background1(verticles, normal, light, camera)
 
         id=self.Set_Top_Right_Canvas()
-        #danie obrazku na dol
+
 
     def Set_Top_Right_Canvas(self):
         image2 = Image.fromarray(self.m.top_Right_Background,'RGB')
@@ -662,52 +803,33 @@ class Controller:
         self.v.canvas_Top_Right.lower(id)
         return id
 
-    def Generate_Top_Right_Canvas_Background(self, verticles, normal, light_point, camera):
+
+
+    def Generate_Top_Right_Canvas_Background1(self, verticles, normal, light_point, camera):
         z=1.7976931348623157e+308
+        self.m.BLP=True
         self.m.top_Right_Background=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0],3),255,dtype=np.uint8)
         self.m.top_Right_Depth=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0]),z)
 
+        first_Line_Factor=np.array([-1,0,0])
         for triangle_nr in range(0,len(self.m.triangle_Verticles)):
             triangle=self.m.triangle_Verticles[triangle_nr]
             points=(verticles[0:3,triangle[0]],verticles[0:3,triangle[1]],verticles[0:3,triangle[2]])
-            #print 'TOP RIGHTpoints',points
-
-            #punkty wygladaja dobrze
             normal_Vector=normal[triangle_nr]
             plane_Equation=self.Count_Plane(normal_Vector,points[0])
-            #print self.m.canvas_Resolution
-           # print 'test'
-            #print 'triangle_nr',triangle_nr
-            #inside,cross_Point=self.Count_Cross_Point([0,40,364],np.array([1,40,364]),plane_Equation,points)
-            #print 'inside,cross_Point',inside,cross_Point
 
             for w in range(0,self.m.canvas_Resolution[0]):
                 for h in range(0, self.m.canvas_Resolution[1]):
-                    #print 'w,h', w,h
 
-                    #to za chwile odznaczyc
-                    inside,cross_Point=self.Count_Cross_Point([0,h,w],np.array([1,h,w]),plane_Equation,points)
-                    #np.array([-26.63495317,40,364])
-
-
-                    #print 'inside,cross_Point',inside,cross_Point
-                    if inside:
-                        #dist=self.count_3d_Distance(cross_Point,np.array([w,h,0]))
-                        #print cross_Point[2]
-                        #print self.m.top_Left_Depth[w,h]
-            #zapamietac!!! > dla perspektywy widoku perspektywicznego a
+                    if self.point_in_triangle(w,h,points[0][2],points[0][1],points[1][2],points[1][1],points[2][2],points[2][1]):
+                        cross_Point=self.Count_Cross_Point_Ortogonal(first_Line_Factor,np.array([-1,h,w]),plane_Equation,points)
                         if self.m.top_Right_Depth[h,w]>cross_Point[0]:
                             self.m.top_Right_Depth[h,w]=cross_Point[0]
                             color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
-                            #print self.m.triangle_Color[triangle_nr], triangle_nr
                            # print 'self.m.triangle_Color[triangle_nr]',self.m.triangle_Color[triangle_nr]
 
                             #self.m.top_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
                             self.m.top_Right_Background[h,w]=color
-
-            #self.m.top_Right_Background[40,364]=[0,255,0]
-        #print self.m.top_Right_Background
-
 
 
 
@@ -718,18 +840,12 @@ class Controller:
         verticles=np.dot(to_Canvas_View,self.m.Bottom_Left_Canvas_Verticles)
         light=np.dot(to_Canvas_View,self.m.Bottom_Left_Canvas_Light)
         camera=np.dot(to_Canvas_View,self.m.Bottom_Left_Canvas_Camera)
-        #print 'camera: ',camera
         normal= self.m.triangle_Normals.copy()
         normal[:,2]=-normal[:,2]
-        ##chwilowe rozwiazanie by sprawdzic jak wyglada to wszystko po przeksztalceniach
-        #print  len(self.m.triangle_Verticles)
-        background=self.Generate_Bottom_Left_Canvas_Background(verticles, normal, light, camera)
+        background=self.Generate_Bottom_Left_Canvas_Background1(verticles, normal, light, camera)
         id=self.Set_Bottom_Left_Canvas()
-        #self.v.canvas_Bottom_Left.lower(id)#danie obrazku na dol
         for i in self.m.triangle_Verticles:
             for j in range(-1,2):
-                #i[j] indeks pierwszego wierzcholka i[j+1] indeks drugiego wierzcholka
-              #  pass
                 self.v.canvas_Bottom_Left.create_line(verticles[0][i[j]],verticles[2][i[j]],verticles[0][i[j+1]],verticles[2][i[j+1]])
 
 
@@ -754,44 +870,95 @@ class Controller:
             triangle=self.m.triangle_Verticles[triangle_nr]
             points=(verticles[0:3,triangle[0]].copy(),verticles[0:3,triangle[1]].copy(),verticles[0:3,triangle[2]].copy())
             normal_Vector=normal[triangle_nr]
-            #print 'BOTTOM LEFT points',points
-
             plane_Equation=self.Count_Plane(normal_Vector,points[0])
-            #print 'plane_Equation',plane_Equation
-            #print 'plane_Equation',plane_Equation
             for w in range(0,self.m.canvas_Resolution[0]):
                 for h in range(0, self.m.canvas_Resolution[1]):
                     inside,cross_Point=self.Count_Cross_Point([w,0,h],np.array([w,-1,h]),plane_Equation,points)
-                    #if(inside and (cross_Point[1]!=w or cross_Point[2]!=h)):
-                     #   print 'cos z punktami sie jeblo: w,h:', w,h
                     if inside:
-            #zapamietac!!! > dla perspektywy widoku perspektywicznego a
                         if self.m.bottom_Left_Depth[h,w]>cross_Point[1]:
                             self.m.bottom_Left_Depth[h,w]=cross_Point[1]
-                            #color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
-                            #print self.m.triangle_Color[triangle_nr], triangle_nr
-                           # print 'self.m.triangle_Color[triangle_nr]',self.m.triangle_Color[triangle_nr]
-
                             self.m.bottom_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
 
-                            #self.m.Bottom_Left_Background[h,w]=color
 
-            #self.m.top_Right_Background[40,364]=[0,255,0]
-        #print self.m.top_Right_Background
+    def Generate_Bottom_Left_Canvas_Background1(self, verticles, normal, light_point, camera):
+        z=1.7976931348623157e+308
+        self.m.BLP=True
+        self.m.bottom_Left_Background=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0],3),255,dtype=np.uint8)
+        self.m.bottom_Left_Depth=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0]),z)
+
+        first_Line_Factor=np.array([0,-1,0])
+        for triangle_nr in range(0,len(self.m.triangle_Verticles)):
+            self.m.numer=triangle_nr
+            triangle=self.m.triangle_Verticles[triangle_nr]
+            points=(verticles[0:3,triangle[0]].copy(),verticles[0:3,triangle[1]].copy(),verticles[0:3,triangle[2]].copy())
+            normal_Vector=normal[triangle_nr]
+            plane_Equation=self.Count_Plane(normal_Vector,points[0])
+
+            for w in range(0,self.m.canvas_Resolution[0]):
+                for h in range(0, self.m.canvas_Resolution[1]):
+
+                    #x0,y0,z0 = points[0]
+                   # x1,y1,z1 = points[1]
+                    #x2,y2,z2 = points[2]
+                    #ponizej wg tego co wczesniej powinno byc h a pozniej w
+                   # if self.point_in_triangle(w,h,x0,z0,x1,z1,x2,z2):
+                    if self.point_in_triangle(w,h,points[0][0],points[0][2],points[1][0],points[1][2],points[2][0],points[2][2]):
+                        cross_Point=self.Count_Cross_Point_Ortogonal(first_Line_Factor,np.array([w,-1,h]),plane_Equation,points)
+                        if self.m.bottom_Left_Depth[h,w]>cross_Point[1]:
+                            self.m.bottom_Left_Depth[h,w]=cross_Point[1]
+                            #self.m.bottom_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
+                            color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
+                            self.m.bottom_Left_Background[h,w]=color
+
+
+    def Count_First_Line_Factor(self,start_point,second_point):
+        first_Line_Factor=np.array([start_point[0]-second_point[0],start_point[1]-second_point[1],start_point[2]-second_point[2]])
+        return first_Line_Factor
+
+    def Count_Cross_Point_Ortogonal(self,first_Line_Factor,second_point,plane_Equation,points):
+        top=-((second_point*plane_Equation[:3]).sum()+plane_Equation[3])
+        bot=(plane_Equation[:3]*first_Line_Factor).sum()
+
+        if (bot==0):
+            return False, None
+        t=top/bot
+        ret=first_Line_Factor*t+second_point
+        return ret
 
 
     def Refresh_Bottom_Right_Canvas(self):
 
       #  to_Canvas_View=np.dot(self.translation(0,0,self.m.canvas_Resolution[1]),self.scale_Matrix2(1,1,-1))
-        verticles=self.m.verticles
-        light=self.m.light_Position
-        camera=self.m.camera_Position
-        #print 'camera: ',camera
+       # to_Canvas_View=self.Camera_Matrix()
+        verticles=self.m.verticles.copy()
+        light=self.m.light_Position[:]
+        camera=self.m.camera_Position.copy()
         normal= self.m.triangle_Normals.copy()
-
         background=self.Generate_Bottom_Right_Canvas_Background(verticles, normal, light, camera)
         id=self.Set_Bottom_Right_Canvas()
-        #self.v.canvas_Bottom_Left.lower(id)#danie obrazku na dol
+
+    def Refresh_Bottom_Right_Canvas1(self):
+
+      #  to_Canvas_View=np.dot(self.translation(0,0,self.m.canvas_Resolution[1]),self.scale_Matrix2(1,1,-1))
+        to_Canvas_View=self.Camera_Matrix()
+        verticles=np.dot(to_Canvas_View,np.transpose(self.m.verticles))
+        light=np.dot(to_Canvas_View,np.transpose(self.m.light_Position))
+        camera=np.dot(to_Canvas_View,np.transpose(self.m.camera_Position))
+        camera_Rectangle_Points=np.dot(to_Canvas_View,np.transpose(self.m.camera_Rectangle_Points))
+
+        normal=self.Prepare_Normal_Vectors1(verticles)
+
+        #normal= self.m.triangle_Normals.copy()
+        background=self.Generate_Bottom_Right_Canvas_Background1(verticles, normal, light, camera,camera_Rectangle_Points)
+        id=self.Set_Bottom_Right_Canvas()
+
+    def Prepare_Normal_Vectors1(self,verticles):
+        triangle_Normals_Camera=np.zeros((len(self.m.triangle_Verticles),3))
+        for triangle_nr in range(0,len(self.m.triangle_Verticles)):
+            triangle=self.m.triangle_Verticles[triangle_nr]
+            points=(verticles[0:3,triangle[0]],verticles[0:3,triangle[1]],verticles[0:3,triangle[2]])
+            triangle_Normals_Camera[triangle_nr]=self.Count_Normal_Vector(points)
+        return triangle_Normals_Camera
 
     def find_pixel_Coord(self,w,h):
         #uaywasz rezolucji
@@ -813,47 +980,165 @@ class Controller:
         for triangle_nr in range(0,len(self.m.triangle_Verticles)):
             triangle=self.m.triangle_Verticles[triangle_nr]
             points=(verticles[triangle[0],0:3],verticles[triangle[1],0:3],verticles[triangle[2],0:3])
-            #print 'TOP RIGHTpoints',points
-
-            #punkty wygladaja dobrze
             normal_Vector=normal[triangle_nr]
             plane_Equation=self.Count_Plane(normal_Vector,points[0])
-           # print self.m.canvas_Resolution
-           # print 'test'
-            #print 'triangle_nr',triangle_nr
-            #inside,cross_Point=self.Count_Cross_Point([0,40,364],np.array([1,40,364]),plane_Equation,points)
-            #print 'inside,cross_Point',inside,cross_Point
+
 
             for w in range(0,self.m.canvas_Resolution[0]):
                 for h in range(0, self.m.canvas_Resolution[1]):
-                    #print 'w,h', w,h
-
-
                     viewpoint_Pixel= self.find_pixel_Coord(w,h)
                     inside,cross_Point=self.Count_Cross_Point(viewpoint_Pixel[:3],camera[:3],plane_Equation,points)
-                    #np.array([-26.63495317,40,364])
-
-                    #a=self.m.viewport_Position[0:3]-self.m.camera_Position[0:3]
-                    #b=cross_Point[0:3]-self.m.viewport_Position[0:3]
-
                     if inside :
                         temp=np.dot(self.m.viewport_Position[0:3]-self.m.camera_Position[0:3],cross_Point[0:3]-self.m.viewport_Position[0:3])
                         if np.dot(self.m.viewport_Position[0:3]-self.m.camera_Position[0:3],cross_Point[0:3]-self.m.viewport_Position[0:3])>=0:
 
-                        #print 'inside,cross_Point',inside,cross_Point
-
                             dist=self.count_3d_Distance(cross_Point,camera)
                             if self.m.bottom_Right_Depth[h,w]>dist:
                                 self.m.bottom_Right_Depth[h,w]=dist
-                                #color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
-                                #print self.m.triangle_Color[triangle_nr], triangle_nr
-                               # print 'self.m.triangle_Color[triangle_nr]',self.m.triangle_Color[triangle_nr]
-
                                 self.m.bottom_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
-                                #self.m.bottom_Right_Background[h,w]=color
 
-            #self.m.top_Right_Background[40,364]=[0,255,0]
-        #print self.m.top_Right_Background
+    def Generate_Bottom_Right_Canvas_Background1(self, verticles, normal, light_point, camera,rectangle):
+        verticles_On_2d=np.dot(self.Generate_Perspective_View(camera),verticles)#sprawdzic czy to dobrze mnozy
+        self.Normalize_Matrix(verticles_On_2d)
+
+        z=1.7976931348623157e+308
+        self.m.bottom_Right_Background=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0],3),255,dtype=np.uint8)
+        self.m.bottom_Right_Depth=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0]),z)
+
+        for triangle_nr in range(0,len(self.m.triangle_Verticles)):
+            triangle=self.m.triangle_Verticles[triangle_nr]
+            points=(verticles[0:3,triangle[0]].copy(),verticles[0:3,triangle[1]].copy(),verticles[0:3,triangle[2]].copy())
+            points_On_2d=(verticles_On_2d[0:3,triangle[0]].copy(),verticles_On_2d[0:3,triangle[1]].copy(),verticles_On_2d[0:3,triangle[2]].copy())
+            normal_Vector=normal[triangle_nr]
+            plane_Equation=self.Count_Plane(normal_Vector,points[0])
+
+            for w in range(0,self.m.canvas_Resolution[0]):
+                for h in range(0, self.m.canvas_Resolution[1]):
+                    viewpoint_Pixel= self.find_pixel_Coord1(w,h,rectangle)#to mozna raz obliczyc przed trojkatami
+
+                    if self.point_in_triangle(viewpoint_Pixel[0],viewpoint_Pixel[1],points_On_2d[0][0],points_On_2d[0][1],points_On_2d[1][0],points_On_2d[1][1],points_On_2d[2][0],points_On_2d[2][1]):
+                        cross_Point=self.Count_Cross_Point_For_Camera(viewpoint_Pixel[:3],camera[:3],plane_Equation,points)
+                        if np.dot(-camera[0:3],cross_Point[0:3])>=0:
+                            dist=self.count_3d_Distance(cross_Point,camera)
+                            if self.m.bottom_Right_Depth[h,w]>dist:
+                                self.m.bottom_Right_Depth[h,w]=dist
+                                self.m.bottom_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
+
+                       # if self.m.bottom_Left_Depth[h,w]>cross_Point[1]:
+                        #    self.m.bottom_Left_Depth[h,w]=cross_Point[1]
+                            #self.m.bottom_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
+                        #    color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
+                        #    self.m.Bottom_Left_Background[h,w]=color
+
+    def Count_Cross_Point_For_Camera(self,start_point,second_point,plane_Equation,points):
+        first_Line_Factor=np.array([start_point[0]-second_point[0],start_point[1]-second_point[1],start_point[2]-second_point[2]])
+
+        top=-((second_point*plane_Equation[:3]).sum()+plane_Equation[3])
+        bot=(plane_Equation[:3]*first_Line_Factor).sum()
+
+        if (bot==0):
+            return False, None
+        t=top/bot
+        ret=first_Line_Factor*t+second_point
+        return  ret
+
+
+    def Normalize_Matrix(self, matrix):
+        for i in range(0,matrix.shape[1]):
+	        for j in (0,1,2,3):
+		        matrix[j,i]=float(matrix[j,i])/matrix[3,i]
+
+
+    def find_pixel_Coord1(self,w,h,rectangle):
+        #uaywasz rezolucji
+        viewpoint_Rectangle=np.transpose(rectangle)
+        b=viewpoint_Rectangle[0]-viewpoint_Rectangle[3]
+        a=viewpoint_Rectangle[2]-viewpoint_Rectangle[3]
+        B=b/(self.m.canvas_Resolution[0]-1)
+        A=a/(self.m.canvas_Resolution[1]-1)
+        dx=w*B
+        dy=h*A
+        pixel_Coords=viewpoint_Rectangle[3]+dx+dy
+        return pixel_Coords
+
+    def Generate_Perspective_View(self,camera):
+        return np.array([[1,0,0 ,0],
+                        [0 ,1 ,0,0],
+                        [0,0,0,0],
+                        [0,0,-1./camera[2],1]])
+
+    def Camera_Matrix(self):#wydaje mi sie ze dobrze obliczylem juz te katy
+        #used to set rectangle points in right place in space
+        temp_camera=self.m.camera_Position.copy()
+        temp_viewport=self.m.viewport_Position.copy()
+        temp_camera=temp_camera-temp_viewport#ta linijka powinna zostac przeniesiona do reverse matrix - chyuba
+
+        angle=0
+        if(temp_camera[2]==0):
+            if(temp_camera[1]>0):
+                angle=-90
+            elif(temp_camera[1]<0):
+                angle=90
+            else:
+                angle=0
+        else:
+            if(temp_camera[2]>0):
+                angle=180
+            pre=math.degrees(math.atan(float(temp_camera[1])/temp_camera[2]))
+            angle=angle+pre#w code review doogarnac dzielenie
+    #rotation OX
+        rotateOX_toCompute=self.rotation_X(angle)
+
+        top=math.sqrt(pow(temp_camera[1],2) + pow(temp_camera[2],2))
+
+        #if(temp_camera[0]==0):
+         #   angle=0
+        #else:
+         #   angle=math.degrees(  math.atan( float(temp_camera[0])/top  )  )#dobre
+        if(top==0):#top musi byc rowny 0
+        #if(temp_camera[2]==0):#top musi byc rowny 0
+            if temp_camera[0]==0:
+                angle=0
+            elif temp_camera[0]>0:
+                angle=90
+            else:
+                angle=-90
+        else:
+            angle=math.degrees(  math.atan( float(temp_camera[0])/top  )  )
+
+    #rotation OY
+        rotateOY_toCompute=self.rotation_Y(angle)
+
+        translate=self.translation(temp_viewport[0],temp_viewport[1],temp_viewport[2])
+        translate_toCompute=self.translation(-temp_viewport[0],-temp_viewport[1],-temp_viewport[2])
+
+        matrix_toCompute=np.dot(rotateOY_toCompute,rotateOX_toCompute)
+
+        Y=np.array([[0],[1],[0],[1]])
+        Y= np.dot(matrix_toCompute,Y)
+
+        angle=0
+       # if Y[1]<0:
+       #     angle=180
+
+
+        if Y[1]==0:
+            if Y[0]>0:
+                angle=90
+            elif Y[0]<0:
+                angle=-90
+        else:
+            if Y[1]<0:
+                angle=180
+            angle=angle + math.degrees(math.atan(float(Y[0])/Y[1]))#kat potrzebny do wyprostowania kamery jak znajdzie sie na z
+
+       # angle=angle+math.degrees(math.atan(float(Y[0])/Y[1]))
+
+        #rotateOZ=self.rotation_Z(angle)
+        rotateOZ_toCompute=self.rotation_Z(angle)
+        matrix_toCompute=np.dot(rotateOZ_toCompute,matrix_toCompute)
+
+        return np.dot(matrix_toCompute,translate_toCompute)
 
 
     def Set_Bottom_Right_Canvas(self):
@@ -868,42 +1153,11 @@ class Controller:
 
 
     def Draw_Camera_Triangle(self):
-        #mozna pomyslec nad rozdzieleniem do poszczegolnych canvasow tych przeksztalcen
         to_Canvas_View=np.dot(self.translation(0,self.m.canvas_Resolution[1],self.m.canvas_Resolution[1]),self.scale_Matrix2(1,-1,-1))
         self.Draw_Top_Left_Camera_Triangle(to_Canvas_View)
         self.Draw_Bottom_Left_Camera_Triangle(to_Canvas_View)
-
-    #    camera=np.dot(to_Canvas_View,self.m.Left_Canvas_Camera)
-     #   viewport=np.dot(to_Canvas_View,self.m.Left_Canvas_Viewpoint)
-     #   points=np.dot(to_Canvas_View,self.m.Left_Canvas_Rectangle)
-
-        #TOP LEFT CANVAS
-      #  for i in range(0,4):
-      #      self.v.canvas_Top_Left.create_line(camera[0],camera[1],points[0][i],points[1][i])
-      #  self.v.canvas_Top_Left.create_line(camera[0],camera[1], viewport[0], viewport[1],fill='red', width=3 )
-      #  for i in range(-1,3):
-       #     self.v.canvas_Top_Left.create_line(points[0][i],points[1][i],points[0][i+1],points[1][i+1])
-#
- #       #BOTTOM LEFT
-  #      for i in range(0,4):
-   #         self.v.canvas_Bottom_Left.create_line(camera[0],camera[2],points[0][i],points[2][i])
-    #    self.v.canvas_Bottom_Left.create_line(camera[0],camera[2], viewport[0], viewport[2],fill='red', width=3 )
-     #   for i in range(-1,3):
-      #      self.v.canvas_Bottom_Left.create_line(points[0][i],points[2][i],points[0][i+1],points[2][i+1])
-
-
         to_Canvas_View=np.dot(self.translation(0,self.m.canvas_Resolution[1],0),self.scale_Matrix2(1,-1,1))
         self.Draw_Top_Right_Camera_Triangle(to_Canvas_View)
-     #   camera=np.dot(to_Canvas_View,self.m.Top_Right_Canvas_Camera)
-     #  viewport=np.dot(to_Canvas_View,self.m.Top_Right_Canvas_Viewpoint)
-      #  points=np.dot(to_Canvas_View,self.m.Top_Right_Canvas_Rectangle)
-
-        #TOP RIGHT
-      #  for i in range(0,4):
-     #       self.v.canvas_Top_Right.create_line(camera[2],camera[1],points[2][i],points[1][i])
-     #   self.v.canvas_Top_Right.create_line(camera[2],camera[1], viewport[2], viewport[1],fill='red', width=3 )
-     #   for i in range(-1,3):
-     #       self.v.canvas_Top_Right.create_line(points[2][i],points[1][i],points[2][i+1],points[1][i+1])
 
 
     def Draw_Top_Left_Camera_Triangle(self, matrix):
@@ -1042,10 +1296,7 @@ class Controller:
 
 
     def click_Top_Left(self,x,y):
-        #sprawdzenie ktory piunkt na canvasie to left
-        #test dla Camery
-        #print self.m.clickable_Points["Top_Left_Viewpoint"]
-        #print self.m.clickable_Points["Top_Left_Camera"]
+
 
         #sprawdzenie czy ejst obiekt
         if(self.m.have_Object):
@@ -1099,8 +1350,12 @@ class Controller:
         self.set_Canvas()
 
     def release_Top_Left(self):
-        self.m.Refresh_Camera_View=True
+        if self.m.have_Object and self.clicked_Type!='':
+            self.m.Refresh_Camera_View=True
         self.clicked_Type=''
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
 
 
 
@@ -1162,8 +1417,12 @@ class Controller:
         self.set_Canvas()
 
     def release_Top_Right(self):
-        self.m.Refresh_Camera_View=True
+        if self.m.have_Object and self.clicked_Type!='':
+            self.m.Refresh_Camera_View=True
         self.clicked_Type=''
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
 
     #a tutaj koncze modyfikacja top right
 
@@ -1225,8 +1484,12 @@ class Controller:
         self.set_Canvas()
 
     def release_Bottom_Left(self):
-        self.m.Refresh_Camera_View=True
+        if self.m.have_Object and self.clicked_Type!='':
+            self.m.Refresh_Camera_View=True
         self.clicked_Type=''
+        self.set_Camera_Rectangle_Points()
+        self.clear_Canvas()
+        self.set_Canvas()
 
 
     def clear_Canvas(self):

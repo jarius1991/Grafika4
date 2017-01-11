@@ -28,11 +28,16 @@ class View():
         self.root.grid_columnconfigure(0,weight=1)
         self.root.grid_rowconfigure(0,weight=1)
         self.root.minsize(width=1000,height=1000)
+       # self.root.bind("<Configure>", self.On_Resize)
 
         for i in (0,1):
             self.frame.grid_columnconfigure(i,weight=1)
             self.frame.grid_rowconfigure(i,weight=1)
 
+    def On_Resize(self, *args):
+       # self.control.Resize_Window()
+        pass
+        print "Zmiana romiaru"
 
 
     def Init_Buttons(self):
@@ -49,6 +54,7 @@ class View():
         self.scale_Item=ttk.Scale(self.frame, orient=HORIZONTAL, length=400, from_=1.0, to=89.0, variable=self.angle_Camera, command=self.Scale_Change)
         self.label.grid(column=0 ,row=2, padx=10, pady=10,sticky=(W))
         self.scale_Item.grid(column=0, row=3, padx=10, pady=10,sticky=(W))
+        self.scale_Item.bind("<ButtonRelease-1>", self.Update_Scale_Value)
         #self.angle_Camera.set(45)
 
     def Init_Canvas(self):
@@ -169,7 +175,8 @@ class View():
        # print self.angle_Camera.get()
         self.control.angle_Change(self.angle_Camera.get())
 
-
+    def Update_Scale_Value(self,*args):
+       self.control.angle_Update()
 
 
 
