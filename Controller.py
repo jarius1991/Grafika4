@@ -17,6 +17,14 @@ class Controller:
         self.m=Model.Model()
         self.v=View.View(self)
 
+    def Save_Camera(self):
+        if(self.m.have_Object):
+            file=open(self.m.to_Save_Directory,'wb')
+
+            file.write('%d %d %d %d\n' % (self.m.camera_Position[0], self.m.camera_Position[1],self.m.camera_Position[2],1))
+            file.write('%d %d %d %d\n' % (self.m.viewport_Position[0],self.m.viewport_Position[1],self.m.viewport_Position[2],1))
+            file.write('%d' % (self.m.angle_Camera))
+            file.close()
 
     def angle_Change(self, value):
         self.m.angle_Camera=value#Borders checked at Tkinter Widget
@@ -161,7 +169,9 @@ class Controller:
             #####
 
             #####open camera
+            self.m.to_Save_Directory=source+'/kamera.txt'
             file=open(source+'/kamera.txt','r')
+
             self.m.camera_Position=np.array([int(i) for i in file.readline().strip('\n').split(' ')])
             #print  self.m.camera_Position
 
@@ -220,6 +230,8 @@ class Controller:
             points=(verticles[0:3,triangle[0]],verticles[0:3,triangle[1]],verticles[0:3,triangle[2]])
             self.m.triangle_Normals[triangle_nr]=self.Count_Normal_Vector(points)
         #print 'zmieniamy normalne//po zainicjowaniu', self.m.triangle_Normals
+
+
 
 
 
@@ -611,6 +623,7 @@ class Controller:
                             #print self.m.triangle_Color[triangle_nr], triangle_nr
                             #self.m.top_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
                             self.m.top_Left_Background[h,w]=color
+
     def Generate_Top_Left_Canvas_Background1(self, verticles, normal, light_point, camera):
         z=-1.7976931348623157e+308
         self.m.top_Left_Background=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0],3),255,dtype=np.uint8)
@@ -634,7 +647,7 @@ class Controller:
                            # print 'self.m.triangle_Color[triangle_nr]',self.m.triangle_Color[triangle_nr]
 
                             #self.m.top_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
-                            self.m.top_Left_Background[h,w]=color
+                            self.m.top_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]#color#
 
 
 
@@ -650,9 +663,8 @@ class Controller:
             I=I/dist
 
         #Counting Os
-        plane=self.Count_Plane(normal_Vector,cross_Point)#moana uzyc wczesniejszego
+        plane=self.Count_Plane(normal_Vector,cross_Point)#moze uzyc wczesniejszego
         point_under=self.find_point(camera[:3],camera[:3]+normal_Vector,plane)#mozna obliczyc raz na trojkat o ile nie ma cieniowania
-        #print 'plane',plane
 
         vector0=cross_Point-point_under
         point_Os=camera[:3]+vector0+vector0
@@ -680,7 +692,7 @@ class Controller:
 
     def fatt(self,r):
         #return min(1./(0.0005*pow(r,2)+r*0.001),1)
-        return min(1./(r+1),1)
+        return min(1./(pow(r,2)/100000+r/10+1),1)
 
     def point_in_triangle(self,x,y, x0,y0, x1,y1, x2,y2):
     #barycentric algorithm
@@ -724,8 +736,6 @@ class Controller:
 
         # Check if point is in triangle
         return (u >= 0) and (v >= 0) and (u + v < 1)
-
-
 
     # punkty to trzyelementowe krotki (x,y,z)
     def point_in_triangle3D(self,p, p0,p1,p2):
@@ -825,11 +835,11 @@ class Controller:
                         cross_Point=self.Count_Cross_Point_Ortogonal(first_Line_Factor,np.array([-1,h,w]),plane_Equation,points)
                         if self.m.top_Right_Depth[h,w]>cross_Point[0]:
                             self.m.top_Right_Depth[h,w]=cross_Point[0]
-                            color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
+                            #color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
                            # print 'self.m.triangle_Color[triangle_nr]',self.m.triangle_Color[triangle_nr]
 
-                            #self.m.top_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
-                            self.m.top_Right_Background[h,w]=color
+                            self.m.top_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
+                            #self.m.top_Right_Background[h,w]=color
 
 
 
@@ -844,9 +854,9 @@ class Controller:
         normal[:,2]=-normal[:,2]
         background=self.Generate_Bottom_Left_Canvas_Background1(verticles, normal, light, camera)
         id=self.Set_Bottom_Left_Canvas()
-        for i in self.m.triangle_Verticles:
-            for j in range(-1,2):
-                self.v.canvas_Bottom_Left.create_line(verticles[0][i[j]],verticles[2][i[j]],verticles[0][i[j+1]],verticles[2][i[j+1]])
+        #for i in self.m.triangle_Verticles:
+           # for j in range(-1,2):
+               # self.v.canvas_Bottom_Left.create_line(verticles[0][i[j]],verticles[2][i[j]],verticles[0][i[j+1]],verticles[2][i[j+1]])
 
 
 
@@ -906,9 +916,9 @@ class Controller:
                         cross_Point=self.Count_Cross_Point_Ortogonal(first_Line_Factor,np.array([w,-1,h]),plane_Equation,points)
                         if self.m.bottom_Left_Depth[h,w]>cross_Point[1]:
                             self.m.bottom_Left_Depth[h,w]=cross_Point[1]
-                            #self.m.bottom_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
-                            color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
-                            self.m.bottom_Left_Background[h,w]=color
+                            self.m.bottom_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
+                            #color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
+                            #self.m.bottom_Left_Background[h,w]=color
 
 
     def Count_First_Line_Factor(self,start_point,second_point):
@@ -947,9 +957,9 @@ class Controller:
         camera_Rectangle_Points=np.dot(to_Canvas_View,np.transpose(self.m.camera_Rectangle_Points))
 
         normal=self.Prepare_Normal_Vectors1(verticles)
-
+        normal_Verticles=self.Prepare_Normal_For_Verticles(verticles,normal)
         #normal= self.m.triangle_Normals.copy()
-        background=self.Generate_Bottom_Right_Canvas_Background1(verticles, normal, light, camera,camera_Rectangle_Points)
+        background=self.Generate_Bottom_Right_Canvas_Background1(verticles, normal, light, camera,camera_Rectangle_Points,normal_Verticles)
         id=self.Set_Bottom_Right_Canvas()
 
     def Prepare_Normal_Vectors1(self,verticles):
@@ -959,6 +969,57 @@ class Controller:
             points=(verticles[0:3,triangle[0]],verticles[0:3,triangle[1]],verticles[0:3,triangle[2]])
             triangle_Normals_Camera[triangle_nr]=self.Count_Normal_Vector(points)
         return triangle_Normals_Camera
+
+    def Prepare_Normal_For_Verticles(self,verticles,normal):
+        info_Verticles=[{verticles_in_traingle:self.m.triangle_Verticles[verticles_in_traingle] for verticles_in_traingle in range(0,len(self.m.triangle_Verticles)) if verticle_number in self.m.triangle_Verticles[verticles_in_traingle] }
+
+           for verticle_number in range(0,len(verticles))]
+        #infoe_Verticles[numer_of_verticle[triangle_nr_which use that verticle[verticles used in that triangle(0,1,2)]]]
+        #info_Verticles
+        verticles_Normals=np.zeros((len(info_Verticles),3))
+
+        for verticle in range(0,len(info_Verticles)):
+            triangles=info_Verticles[verticle]
+            #for triangles in info_Verticles[verticle]:
+            for triangle in triangles.keys():
+                mult=self.multipier_Verticle_Normal(verticle,triangles[triangle],verticles)
+                vector_Elem=mult*normal[triangle]
+                verticles_Normals[verticle]= verticles_Normals[verticle]+vector_Elem
+
+        for i in range(0,len(info_Verticles)):
+            a=verticles_Normals[i]
+            dist=math.sqrt(pow(verticles_Normals[i,0],2)+pow(verticles_Normals[i,1],2)+pow(verticles_Normals[i,2],2))
+            temp=verticles_Normals[i]/dist
+            verticles_Normals[i]=np.transpose(temp)
+        #normalizacja wektorow
+
+        return verticles_Normals
+
+
+    def multipier_Verticle_Normal(self, verticle_Counted,triangle_Verticles,verticles ):
+        other_vertices=[i for i in triangle_Verticles if i!= verticle_Counted]
+
+        vector0=verticles[0:3,other_vertices[0]]-verticles[0:3,verticle_Counted]
+        vector1=verticles[0:3,other_vertices[1]]-verticles[0:3,verticle_Counted]
+
+        dosinusa=(self.count_3d_Distance([0,0,0],np.cross(vector0,vector1))/( self.count_3d_Distance([0,0,0],vector0)  * self.count_3d_Distance([0,0,0],vector1)   )       )
+        if dosinusa>1:
+            dosinusa=1
+        elif dosinusa<-1:
+            dosinusa=-1
+
+        angle= math.asin(dosinusa    )
+
+
+        if np.dot(vector0,vector1)>=0:
+            return angle
+        else:
+            return math.pi-angle
+
+
+
+
+
 
     def find_pixel_Coord(self,w,h):
         #uaywasz rezolucji
@@ -997,7 +1058,7 @@ class Controller:
                                 self.m.bottom_Right_Depth[h,w]=dist
                                 self.m.bottom_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
 
-    def Generate_Bottom_Right_Canvas_Background1(self, verticles, normal, light_point, camera,rectangle):
+    def Generate_Bottom_Right_Canvas_Background1(self, verticles, normal, light_point, camera,rectangle,normal_Verticles):
         verticles_On_2d=np.dot(self.Generate_Perspective_View(camera),verticles)#sprawdzic czy to dobrze mnozy
         self.Normalize_Matrix(verticles_On_2d)
 
@@ -1006,7 +1067,9 @@ class Controller:
         self.m.bottom_Right_Depth=np.full((self.m.canvas_Resolution[1],self.m.canvas_Resolution[0]),z)
 
         for triangle_nr in range(0,len(self.m.triangle_Verticles)):
+
             triangle=self.m.triangle_Verticles[triangle_nr]
+            triangle_Normal_Verticles=[normal_Verticles[i] for i in triangle]
             points=(verticles[0:3,triangle[0]].copy(),verticles[0:3,triangle[1]].copy(),verticles[0:3,triangle[2]].copy())
             points_On_2d=(verticles_On_2d[0:3,triangle[0]].copy(),verticles_On_2d[0:3,triangle[1]].copy(),verticles_On_2d[0:3,triangle[2]].copy())
             normal_Vector=normal[triangle_nr]
@@ -1022,13 +1085,52 @@ class Controller:
                             dist=self.count_3d_Distance(cross_Point,camera)
                             if self.m.bottom_Right_Depth[h,w]>dist:
                                 self.m.bottom_Right_Depth[h,w]=dist
-                                self.m.bottom_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
+
+                                counted_Normal=self.Interpolate_Normal_Vector3d(points,triangle_Normal_Verticles,cross_Point)
+                                #color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
+                                color=self.phong_Color_Shading(triangle_nr,cross_Point,counted_Normal,light_point,camera)
+                                self.m.bottom_Right_Background[h,w]=color
+
+                                #self.m.bottom_Right_Background[h,w]=self.m.triangle_Color[triangle_nr]
 
                        # if self.m.bottom_Left_Depth[h,w]>cross_Point[1]:
                         #    self.m.bottom_Left_Depth[h,w]=cross_Point[1]
                             #self.m.bottom_Left_Background[h,w]=self.m.triangle_Color[triangle_nr]
                         #    color=self.phong_Color_Shading(triangle_nr,cross_Point,normal_Vector,light_point,camera)
                         #    self.m.Bottom_Left_Background[h,w]=color
+
+    def Interpolate_Normal_Vector3d(self,points,triangle_Normal_Verticles,cross_Point):
+        #do 2d przejsc
+        px,py,pz=cross_Point[0],cross_Point[1],cross_Point[2]
+        x1,y1,z1=points[0][:3]
+        x2,y2,z2=points[1][:3]
+        x3,y3,z3=points[2][:3]
+
+        dx= max(x1,x2,x3) - min(x1,x2,x3)
+        dy= max(y1,y2,y3) - min(y1,y2,y3)
+        dz= max(z1,z2,z3) - min(z1,z2,z3)
+        min_height = min(dx,dy,dz)
+        lam1,lam2,lam3=0,0,0
+        if dx == min_height:
+            #licz w plaszczyznie yz ,pomin x
+            lam1,lam2,lam3=self.Baricentric_Normal_Vector2d(py,pz,y1,z1,y2,z2,y3,z3)
+        elif dy ==min_height:
+            #licz w zx pomin y
+            lam1,lam2,lam3=self.Baricentric_Normal_Vector2d(px,pz,x1,z1,x2,z2,x3,z3)
+        else:
+            #licz w xy pomin z
+            lam1,lam2,lam3=self.Baricentric_Normal_Vector2d(px,py,x1,y1,x2,y2,x3,y3)
+        fir=triangle_Normal_Verticles[0]*lam1
+        sec=triangle_Normal_Verticles[1]*lam2
+        thir=triangle_Normal_Verticles[2]*lam3
+        counted_Normal=fir+sec+thir
+        return counted_Normal
+
+    def Baricentric_Normal_Vector2d(self,px,py,x1,y1,x2,y2,x3,y3):
+        lam2=((px-x3)*(y1-y3)-(py-y3)*(x1-x3))/((x2-x3)*(y1-y3)-(y2-y3)*(x1-x3))
+        lam1=((py-y3)-lam2*(y2-y3))/(y1-y3)
+        lam3=1-(lam1+lam2)
+        return lam1,lam2,lam3
 
     def Count_Cross_Point_For_Camera(self,start_point,second_point,plane_Equation,points):
         first_Line_Factor=np.array([start_point[0]-second_point[0],start_point[1]-second_point[1],start_point[2]-second_point[2]])

@@ -166,10 +166,10 @@ class View():
         self.control.Open_Data()
 
     def Save_Model(self):
-        print self.canvas_Top_Left.winfo_width(),self.canvas_Top_Left.winfo_height()
-
+       # print self.canvas_Top_Left.winfo_width(),self.canvas_Top_Left.winfo_height()
+        self.control.Save_Camera()
        # pass#powinien przekazywac akcje do kontrolera
-        print self.canvas_Top_Left.cget('cursor')
+        #print self.canvas_Top_Left.cget('cursor')
 
     def Scale_Change(self,*args):
        # print self.angle_Camera.get()
